@@ -1,6 +1,7 @@
 import { Bin } from '@/types/models';
 import { AppError } from '@/utils/errors';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export interface BinService {
   list(params: {
@@ -22,7 +23,7 @@ export interface BinService {
   delete(id: string): Promise<void>;
 }
 
-export function createBinService({ prismaClient }: { prismaClient: PrismaClient }): BinService {
+export function createBinService({ prismaClient = prisma }: { prismaClient?: PrismaClient } = {}): BinService {
   return {
     async list({ page = 1, limit = 10, location, search }) {
       const skip = (page - 1) * limit;

@@ -1,21 +1,14 @@
-interface AppErrorParams {
-  code: string;
-  message: string;
-  httpStatus: number;
-  details?: unknown;
+import { AppError as IAppError } from '@/types/api';
+
+export function createAppError({ code, message, httpStatus, details }: IAppError): IAppError {
+  const error = new Error(message) as IAppError;
+  error.code = code;
+  error.httpStatus = httpStatus;
+  error.details = details;
+  error.name = 'AppError';
+  return error;
 }
 
-export class AppError extends Error {
-  code: string;
-  httpStatus: number;
-  details?: unknown;
-
-  constructor({ code, message, httpStatus, details }: AppErrorParams) {
-    super(message);
-    this.code = code;
-    this.httpStatus = httpStatus;
-    this.details = details;
-    this.name = 'AppError';
-    Object.setPrototypeOf(this, AppError.prototype);
-  }
+export function isAppError(error: unknown): error is IAppError {
+  return error instanceof Error && 'code' in error && 'httpStatus' in error;
 } 
