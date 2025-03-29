@@ -75,7 +75,6 @@ jest.mock('@/services/bin.service');
 // Mock variable declarations
 let mockBinService: jest.Mocked<BinService>;
 let mockRequest: NextRequest;
-let mockParams: { params: { id: string } };
 
 describe('Bin API Routes - Individual Operations', () => {
   beforeEach(() => {

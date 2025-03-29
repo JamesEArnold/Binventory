@@ -1,5 +1,6 @@
 import { Bin } from '@/types/models';
 import { AppError } from '@/utils/errors';
+import { PrismaClient } from '@prisma/client';
 
 export interface BinService {
   list(params: {
@@ -21,113 +22,145 @@ export interface BinService {
   delete(id: string): Promise<void>;
 }
 
-export function createBinService(): BinService {
-  // TODO: Implement actual database operations
-  const bins = new Map<string, Bin>();
-
+export function createBinService({ prismaClient }: { prismaClient: PrismaClient }): BinService {
   return {
     async list({ page = 1, limit = 10, location, search }) {
-      const filteredBins = Array.from(bins.values()).filter((bin) => {
-        if (location && bin.location !== location) return false;
-        if (search && !bin.label.toLowerCase().includes(search.toLowerCase())) return false;
-        return true;
-      });
+      const skip = (page - 1) * limit;
+      const where = {
+        ...(location && { location }),
+        ...(search && {
+          OR: [
+            { label: { contains: search } },
+            { description: { contains: search } },
+          ],
+        }),
+      };
 
-      const start = (page - 1) * limit;
-      const end = start + limit;
-      const paginatedBins = filteredBins.slice(start, end);
+      const [bins, total] = await Promise.all([
+        prismaClient.bin.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        prismaClient.bin.count({ where }),
+      ]);
 
       return {
-        bins: paginatedBins,
+        bins,
         pagination: {
           page,
           pageSize: limit,
-          total: filteredBins.length,
+          total,
         },
       };
     },
 
     async create(data) {
-      const id = crypto.randomUUID();
-      const now = new Date();
-      const qrCode = `https://binventory.app/bins/${id}`;
+      // Check if bin with same label exists
+      const existingBin = await prismaClient.bin.findUnique({
+        where: { label: data.label },
+      });
 
-      const bin: Bin = {
-        id,
-        label: data.label,
-        location: data.location,
-        description: data.description,
-        qrCode,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      if (Array.from(bins.values()).some((b) => b.label === bin.label)) {
+      if (existingBin) {
         throw new AppError({
           code: 'BIN_ALREADY_EXISTS',
-          message: `A bin with label "${bin.label}" already exists`,
+          message: `A bin with label ${data.label} already exists`,
           httpStatus: 409,
         });
       }
 
-      bins.set(id, bin);
-      return bin;
+      // Create the bin
+      const qrCode = `bin:${data.label}`;
+      try {
+        const bin = await prismaClient.bin.create({
+          data: {
+            ...data,
+            qrCode,
+          },
+        });
+        return bin;
+      } catch {
+        // If creation fails due to a unique constraint violation, it means another request
+        // created a bin with the same label between our check and create
+        throw new AppError({
+          code: 'BIN_ALREADY_EXISTS',
+          message: `A bin with label ${data.label} already exists`,
+          httpStatus: 409,
+        });
+      }
     },
 
     async get(id) {
-      const bin = bins.get(id);
+      const bin = await prismaClient.bin.findUnique({
+        where: { id },
+        include: { items: true },
+      });
+
       if (!bin) {
         throw new AppError({
           code: 'BIN_NOT_FOUND',
-          message: `Bin with id "${id}" not found`,
+          message: `Bin with ID ${id} not found`,
           httpStatus: 404,
         });
       }
+
       return bin;
     },
 
     async update(id, data) {
-      const bin = bins.get(id);
-      if (!bin) {
+      // Check if bin exists
+      const existingBin = await prismaClient.bin.findUnique({
+        where: { id },
+      });
+
+      if (!existingBin) {
         throw new AppError({
           code: 'BIN_NOT_FOUND',
-          message: `Bin with id "${id}" not found`,
+          message: `Bin with ID ${id} not found`,
           httpStatus: 404,
         });
       }
 
-      if (data.label && data.label !== bin.label) {
-        if (Array.from(bins.values()).some((b) => b.label === data.label)) {
+      // Check if new label conflicts with existing bin
+      if (data.label && data.label !== existingBin.label) {
+        const binWithLabel = await prismaClient.bin.findUnique({
+          where: { label: data.label },
+        });
+
+        if (binWithLabel) {
           throw new AppError({
             code: 'BIN_ALREADY_EXISTS',
-            message: `A bin with label "${data.label}" already exists`,
+            message: `A bin with label ${data.label} already exists`,
             httpStatus: 409,
           });
         }
       }
 
-      const updatedBin = {
-        ...bin,
-        ...data,
-        id: bin.id,
-        qrCode: bin.qrCode,
-        createdAt: bin.createdAt,
-        updatedAt: new Date(),
-      };
+      // Update the bin
+      const updatedBin = await prismaClient.bin.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date(),
+        },
+      });
 
-      bins.set(id, updatedBin);
       return updatedBin;
     },
 
     async delete(id) {
-      if (!bins.has(id)) {
+      try {
+        await prismaClient.bin.delete({
+          where: { id },
+        });
+      } catch {
         throw new AppError({
           code: 'BIN_NOT_FOUND',
-          message: `Bin with id "${id}" not found`,
+          message: `Bin with ID ${id} not found`,
           httpStatus: 404,
         });
       }
-      bins.delete(id);
     },
   };
 } 
