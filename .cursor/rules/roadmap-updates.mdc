@@ -1,0 +1,91 @@
+---
+description: Rule for maintaining consistent roadmap documentation when implementing features
+globs: docs/ROADMAP.md
+---
+---
+description: Rule for maintaining consistent roadmap documentation when implementing features
+globs: ["docs/ROADMAP.md"]
+---
+
+<rule>
+name: roadmap_updates
+description: Ensures roadmap is updated with implementation details when features are completed
+filters:
+  - type: event
+    pattern: "file_change"
+  - type: file_change
+    pattern: "src/**/*"
+
+actions:
+  - type: suggest
+    message: |
+      When implementing a feature from the roadmap, ensure to:
+
+      1. Update Implementation Status:
+         ```markdown
+         ### Completed Items
+         #### Phase X.Y: Feature Name
+         - [x] Implemented feature
+           - Location: `path/to/implementation.ts`
+           - Implementation: Brief description
+           - Key features:
+             - Feature 1
+             - Feature 2
+           - Reference: Implementation patterns or notes
+         ```
+
+      2. Document Dependencies:
+         - Add any new dependencies to Technical Details
+         - Include version numbers
+         - Document integration points
+
+      3. Update Project Structure:
+         - Document new directories/files
+         - Explain purpose of additions
+         - Note any architectural changes
+
+      4. Add Learning Resources:
+         - Include relevant documentation
+         - Add code examples
+         - Link to external resources
+
+  - type: validate
+    conditions:
+      - pattern: "^### Completed Items"
+        message: "Roadmap must have a Completed Items section"
+      - pattern: "- Location: `.+`"
+        message: "Implementation details must include file location"
+      - pattern: "- Implementation: .+"
+        message: "Must provide implementation description"
+      - pattern: "- Key features:"
+        message: "Must list key features of implementation"
+      - pattern: "- Reference: .+"
+        message: "Must provide implementation references"
+
+examples:
+  - input: |
+      ### Completed Items
+      #### Phase 1.2: OpenAPI Parser
+      - [x] Create OpenAPI spec parser
+        - Location: `mcp/src/core/openapi/parser.ts`
+        - Implementation: Zod-based OpenAPI schema parser
+        - Key features:
+          - Support for OpenAPI 3.0 and 3.1
+          - Validation of spec structure
+          - Type generation capabilities
+        - Reference: See Parser class for validation patterns
+    output: "Valid roadmap update with complete implementation details"
+
+  - input: |
+      #### Phase 1.2: OpenAPI Parser
+      - [x] Create OpenAPI spec parser
+        - Implementation: Basic parser
+    output: "Invalid roadmap update - missing required sections"
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - documentation
+    - standards
+    - roadmap

@@ -1,0 +1,271 @@
+---
+description: Rule for maintaining consistent test structure and strategy across the project
+globs: **/*.test.ts, **/*.test.tsx
+---
+---
+description: Rule for maintaining consistent test structure and strategy across the project
+globs: ["**/*.test.ts", "**/*.test.tsx"]
+---
+
+<rule>
+name: test_strategy
+description: Enforces consistent test structure and patterns based on server.test.ts exemplar
+
+filters:
+  - type: file_extension
+    pattern: "\\.test\\.(ts|tsx)$"
+  - type: content
+    pattern: "describe|it|test"
+  - type: event
+    pattern: "file_create|file_modify"
+
+actions:
+  - type: reject
+    conditions:
+      - pattern: "^(?!import.*from).*describe\\("
+        message: "Test files must start with imports before any describe blocks"
+      - pattern: "describe\\([^,]+\\)"
+        message: "Describe blocks must use arrow functions"
+      - pattern: "it\\([^,]+\\)"
+        message: "Test cases must use arrow functions"
+      - pattern: "beforeEach\\([^,]+\\)"
+        message: "beforeEach must use arrow functions"
+      - pattern: "it\\(.*,\\s*function"
+        message: "Use arrow functions instead of function keyword"
+      - pattern: "describe\\(.*,\\s*function"
+        message: "Use arrow functions instead of function keyword"
+
+  - type: suggest
+    message: |
+      Follow this test structure pattern based on our exemplar server.test.ts:
+
+      1. **Required File Structure**:
+      ```typescript
+      // 1. Imports
+      import { ThingToTest } from '../thing';
+      import { dependencies } from '../dependencies';
+
+      // 2. Mock setup
+      jest.mock('../dependencies');
+      
+      // 3. Mock variable declarations
+      let mockDependency: jest.Mock;
+      
+      // 4. Main describe block
+      describe('ThingToTest', () => {
+        // 5. Instance setup
+        let instance: ThingToTest;
+        
+        // 6. beforeEach
+        beforeEach(() => {
+          jest.clearAllMocks();
+          jest.restoreAllMocks();
+          
+          // 7. Mock reset
+          mockDependency = jest.fn();
+          
+          // 8. Instance creation
+          instance = new ThingToTest();
+        });
+        
+        // 9. Feature group
+        describe('feature', () => {
+          // 10. Test category
+          describe('happy paths', () => {
+            it('should do something', async () => {
+              // 11. Arrange
+              const input = {};
+              
+              // 12. Act
+              const result = await instance.method(input);
+              
+              // 13. Assert
+              expect(result).toBeDefined();
+            });
+          });
+          
+          describe('error cases', () => {
+            it('should handle error', async () => {
+              // Arrange
+              mockDependency.mockRejectedValueOnce(new Error('Expected'));
+              
+              // Act & Assert
+              await expect(instance.method({}))
+                .rejects.toThrow('Expected');
+            });
+          });
+        });
+      });
+      ```
+
+      2. **Strict Ordering Rules**:
+         1. File-level imports first
+         2. Jest.mock calls second
+         3. Mock variable declarations third
+         4. Main describe block fourth
+         5. Instance variables at top of describe
+         6. beforeEach after instance variables
+         7. Nested describes after setup
+         8. Error cases after happy paths
+
+      3. **Required Test Categories Per Feature**:
+         ```typescript
+         describe('feature', () => {
+           describe('setup', () => {
+             // Initialization tests
+           });
+
+           describe('happy paths', () => {
+             // Normal operation tests
+           });
+
+           describe('error cases', () => {
+             // Error handling tests
+           });
+
+           describe('edge cases', () => {
+             // Boundary condition tests
+           });
+         });
+         ```
+
+      4. **Mock Setup Pattern**:
+         ```typescript
+         // At file level
+         let mockThing: jest.Mock;
+         let mockOther: jest.Mock;
+
+         // In beforeEach
+         beforeEach(() => {
+           jest.clearAllMocks();
+           jest.restoreAllMocks();
+
+           mockThing = jest.fn().mockImplementation(() => ({
+             method: jest.fn(),
+           }));
+         });
+         ```
+
+      5. **Async Test Pattern**:
+         ```typescript
+         it('should handle async operation', async () => {
+           // Arrange
+           mockThing.mockResolvedValueOnce(expectedValue);
+           
+           // Act
+           const result = await instance.method();
+           
+           // Assert
+           expect(result).toBe(expectedValue);
+         });
+
+         it('should handle async error', async () => {
+           // Arrange
+           mockThing.mockRejectedValueOnce(new Error('Expected'));
+           
+           // Act & Assert
+           await expect(instance.method())
+             .rejects.toThrow('Expected');
+         });
+         ```
+
+      6. **Error Scenarios**:
+         - Test all error paths
+         - Verify error messages
+         - Check error logging
+         - Test timeout scenarios where applicable
+         - Verify cleanup on errors
+
+      7. **Logging Verification**:
+         - Verify appropriate log levels
+         - Check log messages
+         - Validate error details in logs
+         - Test warning conditions
+
+      8. **Configuration Testing**:
+         - Test default configurations
+         - Verify custom config options
+         - Test invalid configurations
+         - Check configuration merging
+
+examples:
+  - input: |
+      // Bad: Insufficient test structure
+      describe('MyThing', () => {
+        it('should work', () => {
+          const thing = new MyThing();
+          expect(thing.method()).toBe(true);
+        });
+      });
+    output: |
+      // Good: Proper test structure
+      describe('MyThing', () => {
+        let instance: MyThing;
+        let mockDeps;
+
+        beforeEach(() => {
+          jest.clearAllMocks();
+          mockDeps = {
+            dependency: jest.fn()
+          };
+          instance = new MyThing(mockDeps);
+        });
+
+        describe('method', () => {
+          describe('happy paths', () => {
+            it('should process valid input', async () => {
+              const result = await instance.method();
+              expect(result).toBe(true);
+              expect(mockDeps.dependency).toHaveBeenCalled();
+            });
+          });
+
+          describe('error handling', () => {
+            it('should handle failures', async () => {
+              mockDeps.dependency.mockRejectedValueOnce(new Error('Failed'));
+              await expect(instance.method())
+                .rejects.toThrow('Failed');
+            });
+          });
+        });
+      });
+
+  - input: |
+      // Bad: Missing error handling
+      it('processes data', async () => {
+        const result = await processor.process(data);
+        expect(result).toBeDefined();
+      });
+    output: |
+      // Good: Complete test coverage
+      describe('process', () => {
+        describe('happy paths', () => {
+          it('processes valid data', async () => {
+            const result = await processor.process(validData);
+            expect(result).toBeDefined();
+          });
+        });
+
+        describe('error handling', () => {
+          it('handles invalid data', async () => {
+            await expect(processor.process(invalidData))
+              .rejects.toThrow('Invalid data');
+          });
+
+          it('handles processing failures', async () => {
+            mockProcessor.mockRejectedValueOnce(new Error('Process failed'));
+            await expect(processor.process(validData))
+              .rejects.toThrow('Process failed');
+          });
+        });
+      });
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - testing
+    - best-practices
+    - typescript
+    - jest
+</rule>

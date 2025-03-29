@@ -1,0 +1,210 @@
+---
+description: Rule for ensuring tests verify actual implementations rather than just mocks
+globs: "**/__tests__/*.test.ts", "**/__tests__/*.test.tsx", "**/*.test.ts", "**/*.test.tsx"
+---
+---
+description: Rule for ensuring tests verify actual implementations rather than just mocks
+globs: ["**/__tests__/*.test.ts", "**/__tests__/*.test.tsx", "**/*.test.ts", "**/*.test.tsx"]
+---
+
+<rule>
+name: implementation_testing
+description: Ensures tests verify actual implementations through granular unit testing
+
+filters:
+  - type: file_extension
+    pattern: "\\.test\\.(ts|tsx)$"
+  - type: content
+    pattern: "describe|it|test"
+
+actions:
+  - type: suggest
+    message: |
+      When writing tests, follow these principles for granular unit testing:
+
+      1. Test Organization:
+         ```typescript
+         describe('ComponentName', () => {
+           // Setup common test state
+           let instance: ComponentType;
+           let dependencies: Dependencies;
+
+           beforeEach(() => {
+             // Reset state and mocks
+             jest.clearAllMocks();
+             
+             // Setup test instance
+             instance = new ComponentType();
+           });
+
+           describe('methodName', () => {
+             // Group tests by functionality within method
+             describe('input validation', () => {
+               it('should validate required fields');
+               it('should handle invalid input');
+             });
+
+             describe('data processing', () => {
+               it('should transform data correctly');
+               it('should handle edge cases');
+             });
+
+             describe('error handling', () => {
+               it('should handle specific error types');
+               it('should propagate unexpected errors');
+             });
+           });
+         });
+         ```
+
+      2. Test Granularity:
+         - Test each logical step in a method separately
+         - Focus on one behavior per test
+         - Use nested describes to group related tests
+         - Name tests to clearly indicate the specific behavior being tested
+
+      3. Mock Setup:
+         ```typescript
+         // Create mock functions at module level
+         const mockDependency = jest.fn().mockResolvedValue(defaultValue);
+
+         // Setup specific mock behavior per test
+         it('should handle specific case', () => {
+           mockDependency.mockResolvedValueOnce(specificValue);
+           // Test implementation
+         });
+         ```
+
+      4. Async Testing:
+         ```typescript
+         it('should handle async operations', async () => {
+           // Setup
+           const expectedResult = 'result';
+           mockAsync.mockResolvedValueOnce(expectedResult);
+
+           // Act
+           const result = await instance.method();
+
+           // Assert
+           expect(result).toBe(expectedResult);
+           expect(mockAsync).toHaveBeenCalledWith(expect.any(String));
+         });
+         ```
+
+      5. Error Testing:
+         ```typescript
+         describe('error handling', () => {
+           it('should handle specific error type', async () => {
+             const error = new Error('Specific error');
+             error.code = 'SPECIFIC_CODE';
+             mockOperation.mockRejectedValueOnce(error);
+
+             await expect(instance.method())
+               .rejects.toThrow('Expected error message');
+           });
+         });
+         ```
+
+      6. Test Coverage:
+         - Test all code paths
+         - Include positive and negative cases
+         - Test edge cases and boundary conditions
+         - Verify error handling for each operation
+
+      7. Test Independence:
+         - Each test should be independent
+         - Reset state in beforeEach
+         - Clean up resources in afterEach
+         - Don't rely on test execution order
+
+examples:
+  - input: |
+      // Bad: Testing multiple behaviors in one test
+      ```typescript
+      it('should handle file operations', async () => {
+        const result = await fileHandler.processFile('test.txt');
+        expect(result.path).toBe('/path/test.txt');
+        expect(result.content).toBe('content');
+        expect(result.error).toBeNull();
+      });
+      ```
+    output: |
+      // Good: Testing behaviors separately
+      ```typescript
+      describe('processFile', () => {
+        describe('path resolution', () => {
+          it('should resolve file path correctly', async () => {
+            const result = await fileHandler.processFile('test.txt');
+            expect(result.path).toBe('/path/test.txt');
+          });
+        });
+
+        describe('content reading', () => {
+          it('should read file content', async () => {
+            const result = await fileHandler.processFile('test.txt');
+            expect(result.content).toBe('content');
+          });
+        });
+
+        describe('error handling', () => {
+          it('should handle missing files', async () => {
+            mockFs.readFile.mockRejectedValueOnce(new Error('ENOENT'));
+            await expect(fileHandler.processFile('missing.txt'))
+              .rejects.toThrow('File not found');
+          });
+        });
+      });
+    ```
+
+  - input: |
+      // Bad: Mixing concerns and unclear test structure
+      ```typescript
+      describe('UserService', () => {
+        it('should create user', async () => {
+          const user = await service.createUser(data);
+          expect(user).toBeDefined();
+        });
+      });
+      ```
+
+    output: |
+      // Good: Clear structure and separated concerns
+      ```typescript
+      describe('UserService', () => {
+        describe('createUser', () => {
+          describe('input validation', () => {
+            it('should require email', async () => {
+              const data = { name: 'Test' };
+              await expect(service.createUser(data))
+                .rejects.toThrow('Email required');
+            });
+          });
+
+          describe('user creation', () => {
+            it('should create user with valid data', async () => {
+              const data = { name: 'Test', email: 'test@example.com' };
+              const user = await service.createUser(data);
+              expect(user).toMatchObject(data);
+            });
+          });
+
+          describe('error handling', () => {
+            it('should handle duplicate emails', async () => {
+              mockDb.query.mockRejectedValueOnce(new Error('Duplicate entry'));
+              await expect(service.createUser(validData))
+                .rejects.toThrow('Email already exists');
+            });
+          });
+        });
+      });
+      ```
+
+metadata:
+  priority: high
+  version: 2.0
+  tags:
+    - testing
+    - best-practices
+    - implementation
+    - typescript
+</rule>

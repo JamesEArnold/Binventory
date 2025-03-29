@@ -1,0 +1,1 @@
+Lets go ahead and run npm test and fix each failing test one by one.  We'll validate each test is fixed before moving onto the next.

@@ -1,0 +1,189 @@
+---
+description: Rule for preferring factory (functional) patterns over classes
+globs: **/*.ts, **/*.tsx
+---
+---
+description: Rule for preferring factory (functional) patterns over classes
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+<rule>
+name: factory_pattern_preference
+description: Encourages a factory-based (functional) style, discouraging class-based implementations
+
+filters:
+  - type: file_extension
+    pattern: "\\.(ts|tsx)$"
+  # This pattern looks for "class " or "extends" usage in the code
+  - type: content
+    pattern: "class\\s+|extends\\s+"
+
+actions:
+  - type: suggest
+    message: |
+      **Prefer a factory (functional) style over classes.**
+
+      **Why?**
+      - **Flexibility**: Functions or factory methods make it simpler to swap dependencies, override behavior, or compose features without rigid inheritance.
+      - **Testability**: Mocking dependencies is generally easier with factories, since you can inject and override them at creation time.
+      - **Reduced Complexity**: Classes and inheritance can lead to rigid hierarchies. Functional composition offers clearer, more modular code.
+
+      ---
+      **Recommended Pattern (Factory):**
+      ```typescript
+      // Good: A simple factory-based approach
+      export function createThing(options?: Partial<ThingConfig>) {
+        // Merge defaults
+        const config = { ...defaultThingConfig, ...options };
+        
+        // Internal state
+        let state = {};
+
+        // Public methods
+        function doSomething() {
+          // ...logic using `config` and `state`
+        }
+
+        // Return an object with all public APIs
+        return {
+          doSomething,
+          getConfig: () => config,
+          setState: (newState: any) => { state = newState; },
+        };
+      }
+      ```
+
+      **Compared to a Class-based approach**:
+      ```typescript
+      // Bad: Rigid class-based pattern
+      class Thing {
+        private config: ThingConfig;
+        private state: any;
+
+        constructor(options?: Partial<ThingConfig>) {
+          this.config = { ...defaultThingConfig, ...options };
+          this.state = {};
+        }
+
+        doSomething() {
+          // ...
+        }
+      }
+      ```
+
+      ---
+      **Testing Factories**:
+      - **Mock** external modules (e.g., `fs`, `axios`, DB clients) as needed.
+      - **Call** your factory function in tests to create an instance for real.
+      - Assert actual behavior (i.e., that your logic orchestrates calls correctly).
+
+      Example:
+      ```typescript
+      // In your test:
+      import { createThing } from './thingFactory';
+
+      describe('Thing', () => {
+        let thingInstance;
+        
+        beforeEach(() => {
+          thingInstance = createThing({ optionA: true });
+        });
+
+        it('should do something with optionA set to true', () => {
+          thingInstance.doSomething();
+          // ...assert the effect
+        });
+      });
+      ```
+
+      ---
+      **References**:
+      - [Composition Over Inheritance](mdc:https:/en.wikipedia.org/wiki/Composition_over_inheritance)
+      - [Functional Design Patterns](mdc:https:/martinfowler.com/articles/collection-pipeline)
+
+examples:
+  - input: |
+      // Bad: Class-based approach
+      ```typescript
+      export class MyService {
+        private config: any;
+        constructor(config: any) {
+          this.config = config;
+        }
+        doWork() {
+          // ...
+        }
+      }
+      ```
+    output: |
+      // Good: Equivalent factory approach
+      ```typescript
+      export function createMyService(customConfig: Partial<ServiceConfig>) {
+        const config = { ...defaultServiceConfig, ...customConfig };
+
+        function doWork() {
+          // ...
+        }
+
+        return {
+          doWork,
+          getConfig: () => config,
+        };
+      }
+      ```
+
+  - input: |
+      // Bad: Using extends for specialized logic
+      ```typescript
+      class BaseLogic {
+        protected config: any;
+        constructor(config: any) {
+          this.config = config;
+        }
+      }
+
+      export class SpecialLogic extends BaseLogic {
+        constructor(config: any) {
+          super(config);
+        }
+        
+        run() {
+          // ...
+        }
+      }
+      ```
+    output: |
+      // Good: Functional composition approach
+      ```typescript
+      function createBaseLogic(baseConfig: any) {
+        function baseMethod() {
+          // ...
+        }
+        return { baseMethod };
+      }
+
+      export function createSpecialLogic(config: any) {
+        const base = createBaseLogic(config);
+
+        function run() {
+          // ...
+        }
+
+        // Combine base logic with specialized logic
+        return {
+          ...base,
+          run,
+        };
+      }
+      ```
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - best-practices
+    - functional
+    - factory
+    - no-classes
+    - composition
+</rule>

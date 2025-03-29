@@ -1,0 +1,57 @@
+---
+description: Rule for automatically running tests after file changes
+globs: **/*.ts, **/*.tsx
+---
+---
+description: Rule for automatically running tests after file changes
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+<rule>
+name: test_automation
+description: Automatically runs tests after TypeScript file changes in the project
+filters:
+  - type: event
+    pattern: "file_change"
+  - type: file_change
+    pattern: "**/*.{ts,tsx}"
+
+actions:
+  - type: suggest
+    message: |
+      Running tests after file changes:
+      ```bash
+      # For MCP tests
+      npm --prefix mcp test
+
+      # For other project tests
+      npm test
+      ```
+
+  - type: execute
+    command: |
+      if [[ "${FILE}" == mcp/* ]]; then
+        npm --prefix mcp test
+      else
+        npm test
+      fi
+    conditions:
+      - pattern: ".*\\.(ts|tsx)$"
+        message: "TypeScript file changed, running appropriate tests"
+
+examples:
+  - input: "Modified mcp/src/core/postman/client.ts"
+    output: "Running MCP tests: npm --prefix mcp test"
+    explanation: "Runs MCP tests for changes in the mcp directory"
+
+  - input: "Modified app/components/UserProfile.tsx"
+    output: "Running project tests: npm test"
+    explanation: "Runs project tests for changes outside the mcp directory"
+
+metadata:
+  priority: high
+  version: 1.0
+  tags:
+    - testing
+    - automation
+    - quality
