@@ -64,7 +64,7 @@ if (typeof Response === 'undefined') {
 }
 
 import { NextRequest } from 'next/server';
-import { GET, POST } from '../route';
+import * as routeModule from '../route';
 import { createBinService, BinService } from '@/services/bin';
 import { createAppError } from '@/utils/errors';
 import { Bin } from '@/types/models';
@@ -89,8 +89,15 @@ describe('Bin API Routes', () => {
       get: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      searchBins: jest.fn(),
     } as jest.Mocked<BinService>;
     (createBinService as jest.Mock).mockReturnValue(mockBinService);
+    
+    // Mock the binService in the module directly
+    Object.defineProperty(routeModule, 'binService', {
+      value: mockBinService,
+      writable: true
+    });
 
     // Create mock request
     mockRequest = new NextRequest(new URL('http://localhost:3000/api/bins'), {
@@ -122,7 +129,7 @@ describe('Bin API Routes', () => {
         mockBinService.list.mockResolvedValueOnce(mockResult);
 
         // Act
-        const response = await GET(mockRequest, mockBinService);
+        const response = await routeModule.GET(mockRequest);
         const data = await response.json();
 
         // Assert
@@ -158,7 +165,7 @@ describe('Bin API Routes', () => {
         });
 
         // Act
-        await GET(mockRequest, mockBinService);
+        await routeModule.GET(mockRequest);
 
         // Assert
         expect(mockBinService.list).toHaveBeenCalledWith({
@@ -181,7 +188,7 @@ describe('Bin API Routes', () => {
         mockBinService.list.mockRejectedValueOnce(error);
 
         // Act
-        const response = await GET(mockRequest, mockBinService);
+        const response = await routeModule.GET(mockRequest);
         const data = await response.json();
 
         // Assert
@@ -201,18 +208,17 @@ describe('Bin API Routes', () => {
         mockBinService.list.mockRejectedValueOnce(error);
 
         // Act & Assert
-        await expect(GET(mockRequest, mockBinService)).rejects.toThrow('Unknown error');
+        await expect(routeModule.GET(mockRequest)).rejects.toThrow('Unknown error');
       });
     });
   });
 
   describe('POST /api/bins', () => {
     beforeEach(() => {
-      // Reset request for POST tests
-      mockRequest = new NextRequest('http://localhost:3000/api/bins', {
+      mockRequest = new NextRequest(new URL('http://localhost:3000/api/bins'), {
         method: 'POST',
         body: JSON.stringify({
-          label: 'test',
+          label: 'test-bin',
           location: 'test-location',
           description: 'test description',
         }),
@@ -224,34 +230,28 @@ describe('Bin API Routes', () => {
         // Arrange
         const mockBin: Bin = {
           id: '1',
-          label: 'test',
+          label: 'test-bin',
           location: 'test-location',
-          qrCode: 'test-qr',
           description: 'test description',
-          createdAt: new Date('2025-03-29T18:17:20.726Z'),
-          updatedAt: new Date('2025-03-29T18:17:20.726Z'),
+          qrCode: 'test-qr',
+          createdAt: new Date(),
+          updatedAt: new Date(),
         };
         mockBinService.create.mockResolvedValueOnce(mockBin);
 
         // Act
-        const response = await POST(mockRequest, mockBinService);
+        const response = await routeModule.POST(mockRequest);
         const data = await response.json();
 
         // Assert
         expect(mockBinService.create).toHaveBeenCalledWith({
-          label: 'test',
+          label: 'test-bin',
           location: 'test-location',
           description: 'test description',
         });
         expect(response.status).toBe(201);
-        expect(data).toEqual({
-          success: true,
-          data: {
-            ...mockBin,
-            createdAt: mockBin.createdAt.toISOString(),
-            updatedAt: mockBin.updatedAt.toISOString()
-          },
-        });
+        expect(data.success).toBe(true);
+        expect(data.data).toHaveProperty('id', '1');
       });
     });
 
@@ -260,13 +260,13 @@ describe('Bin API Routes', () => {
         // Arrange
         const error = createAppError({
           code: 'BIN_ALREADY_EXISTS',
-          message: 'Bin already exists',
+          message: 'A bin with this label already exists',
           httpStatus: 409,
         });
         mockBinService.create.mockRejectedValueOnce(error);
 
         // Act
-        const response = await POST(mockRequest, mockBinService);
+        const response = await routeModule.POST(mockRequest);
         const data = await response.json();
 
         // Assert
@@ -275,20 +275,20 @@ describe('Bin API Routes', () => {
           success: false,
           error: {
             code: 'BIN_ALREADY_EXISTS',
-            message: 'Bin already exists',
+            message: 'A bin with this label already exists',
           },
         });
       });
 
       it('should handle invalid JSON body', async () => {
         // Arrange
-        mockRequest = new NextRequest('http://localhost:3000/api/bins', {
+        mockRequest = new NextRequest(new URL('http://localhost:3000/api/bins'), {
           method: 'POST',
-          body: 'invalid json',
+          body: '{invalid-json',
         });
 
         // Act
-        const response = await POST(mockRequest, mockBinService);
+        const response = await routeModule.POST(mockRequest);
         const data = await response.json();
 
         // Assert

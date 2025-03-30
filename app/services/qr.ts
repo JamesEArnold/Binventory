@@ -37,7 +37,7 @@ export function createQRCodeService(config: QRCodeConfig, urlConfig: URLConfig) 
     // Generate QR code
     const url = `${urlConfig.baseUrl}/b/${qrData.shortCode}`;
     const qrCode = await QRCode.toString(url, {
-      type: config.format === 'SVG' ? 'svg' : 'png',
+      type: config.format === 'SVG' ? 'svg' : 'utf8',
       errorCorrectionLevel: config.errorCorrection,
       width: config.size,
       margin: config.margin,

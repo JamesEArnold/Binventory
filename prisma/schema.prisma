@@ -22,7 +22,7 @@ model Bin {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   items       BinItem[]
-  qrCodes     QRCode[]
+  qrCodes     QrCode[]
 
   @@index([label])
   @@index([location])
@@ -74,7 +74,7 @@ model Category {
   @@map("categories")
 }
 
-model QRCode {
+model QrCode {
   id        String    @id @default(uuid())
   binId     String    @map("bin_id")
   shortCode String    @unique @db.VarChar(50)

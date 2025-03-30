@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createBinService, BinService } from '@/services/bin';
+import { createBinService } from '@/services/bin';
 import { ApiResponse } from '@/types/api';
 import { Bin } from '@/types/models';
 import { isAppError } from '@/utils/errors';
 
-const defaultBinService = createBinService();
+export const binService = createBinService();
 
 // GET /api/bins
-export async function GET(request: NextRequest, binService: BinService = defaultBinService) {
+export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = searchParams.get('page');
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, binService: BinService = default
 }
 
 // POST /api/bins
-export async function POST(request: NextRequest, binService: BinService = defaultBinService) {
+export async function POST(request: NextRequest) {
   try {
     let body;
     try {

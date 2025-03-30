@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createQRCodeService } from '@/app/services/qr';
-import { QRCodeConfig, URLConfig } from '@/app/types/qr';
+import { createQRCodeService } from '@/services/qr';
+import { QRCodeConfig, URLConfig } from '@/types/qr';
 
 const qrConfig: QRCodeConfig = {
   size: 300,
