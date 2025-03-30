@@ -46,6 +46,7 @@ export const BinCard: FC<BinCardProps> = ({
                 onClick={() => onScan(bin.id)}
                 className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
                 aria-label="Scan QR code"
+                type="button"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                   <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
@@ -62,6 +63,7 @@ export const BinCard: FC<BinCardProps> = ({
                 onClick={() => onEdit(bin)}
                 className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
                 aria-label="Edit bin"
+                type="button"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                   <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -74,6 +76,7 @@ export const BinCard: FC<BinCardProps> = ({
                 onClick={() => onDelete(bin.id)}
                 className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-red-500"
                 aria-label="Delete bin"
+                type="button"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
                   <path d="M3 6h18"></path>
