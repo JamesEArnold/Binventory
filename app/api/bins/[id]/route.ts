@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createBinService, BinService } from '@/services/bin';
 import { ApiResponse } from '@/types/api';
 import { Bin } from '@/types/models';
-import { AppError } from '@/utils/errors';
+import { isAppError } from '@/utils/errors';
 
 const defaultBinService = createBinService();
 
@@ -34,8 +34,8 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    if (error instanceof Error && error.name === 'AppError') {
-      const appError = error as AppError;
+    if (error instanceof Error && error.name === 'AppError' && isAppError(error)) {
+      const appError = error;
       const response: ApiResponse<null> = {
         success: false,
         error: {
@@ -94,8 +94,8 @@ export async function PUT(
 
     return NextResponse.json(response);
   } catch (error) {
-    if (error instanceof Error && error.name === 'AppError') {
-      const appError = error as AppError;
+    if (error instanceof Error && error.name === 'AppError' && isAppError(error)) {
+      const appError = error;
       const response: ApiResponse<null> = {
         success: false,
         error: {
@@ -137,8 +137,8 @@ export async function DELETE(
 
     return NextResponse.json(response);
   } catch (error) {
-    if (error instanceof Error && error.name === 'AppError') {
-      const appError = error as AppError;
+    if (error instanceof Error && error.name === 'AppError' && isAppError(error)) {
+      const appError = error;
       const response: ApiResponse<null> = {
         success: false,
         error: {
