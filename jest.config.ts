@@ -19,6 +19,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
+      jsx: 'react-jsx',
     }],
   },
   // Transform ESM modules like nanoid
