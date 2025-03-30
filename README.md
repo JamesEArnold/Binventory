@@ -34,3 +34,53 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+# Binventory
+
+## Docker Setup
+
+The project uses Docker Compose to manage its development dependencies. The following services are included:
+
+- PostgreSQL 16 (Database)
+- MeiliSearch v1.5 (Search Engine)
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Getting Started with Docker
+
+1. Start the services:
+   ```bash
+   docker compose up -d
+   ```
+
+2. Verify services are running:
+   ```bash
+   docker compose ps
+   ```
+
+3. Access services:
+   - PostgreSQL: localhost:5432
+     - User: binventory
+     - Password: binventory_local
+     - Database: binventory
+   - MeiliSearch: http://localhost:7700
+     - API Key: binventory_meili_local_key
+
+4. Stop services:
+   ```bash
+   docker compose down
+   ```
+
+### Data Persistence
+
+Data is persisted through Docker volumes:
+- `postgres_data`: PostgreSQL data
+- `meilisearch_data`: MeiliSearch data
+
+To completely reset the data, remove the volumes:
+```bash
+docker compose down -v
+```
