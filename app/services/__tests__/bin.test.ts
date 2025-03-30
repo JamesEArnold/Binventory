@@ -1,20 +1,28 @@
 import { PrismaClient } from '@prisma/client';
 import { BinService, createBinService } from '@/services/bin';
-import { createAppError } from '@/utils/errors';
 
 // Mock PrismaClient
-jest.mock('@prisma/client', () => ({
-  PrismaClient: jest.fn().mockImplementation(() => ({
-    bin: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-  })),
-}));
+jest.mock('@prisma/client', () => {
+  const mockFindUnique = jest.fn();
+  const mockFindMany = jest.fn();
+  const mockCreate = jest.fn();
+  const mockUpdate = jest.fn();
+  const mockDelete = jest.fn();
+  const mockCount = jest.fn();
+
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      bin: {
+        findUnique: mockFindUnique,
+        findMany: mockFindMany,
+        create: mockCreate,
+        update: mockUpdate,
+        delete: mockDelete,
+        count: mockCount,
+      },
+    })),
+  };
+});
 
 describe('BinService', () => {
   let binService: BinService;
@@ -44,8 +52,8 @@ describe('BinService', () => {
           updatedAt: new Date(),
         };
 
-        mockPrismaClient.bin.findUnique.mockResolvedValueOnce(null);
-        mockPrismaClient.bin.create.mockResolvedValueOnce(expectedBin);
+        (mockPrismaClient.bin.findUnique as jest.Mock).mockResolvedValueOnce(null);
+        (mockPrismaClient.bin.create as jest.Mock).mockResolvedValueOnce(expectedBin);
 
         // Act
         const result = await binService.create(binData);
@@ -81,16 +89,14 @@ describe('BinService', () => {
           updatedAt: new Date(),
         };
 
-        mockPrismaClient.bin.findUnique
+        (mockPrismaClient.bin.findUnique as jest.Mock)
           .mockResolvedValueOnce(existingBin)
           .mockResolvedValueOnce(existingBin);
 
         // Act & Assert
-        await expect(binService.create(binData)).rejects.toThrow(createAppError({
-          code: 'BIN_ALREADY_EXISTS',
-          message: `A bin with label ${binData.label} already exists`,
-          httpStatus: 409,
-        }));
+        await expect(binService.create(binData)).rejects.toThrow(
+          `A bin with label ${binData.label} already exists`
+        );
         expect(mockPrismaClient.bin.findUnique).toHaveBeenCalledWith({
           where: { label: binData.label },
         });
@@ -115,7 +121,10 @@ describe('BinService', () => {
           items: [],
         };
 
-        mockPrismaClient.bin.findUnique.mockResolvedValueOnce(expectedBin);
+        // Clear any previous mock implementations and create a new one
+        jest.clearAllMocks();
+        (mockPrismaClient.bin.findUnique as jest.Mock).mockReset();
+        (mockPrismaClient.bin.findUnique as jest.Mock).mockResolvedValueOnce(expectedBin);
 
         // Act
         const result = await binService.get(binId);
@@ -133,14 +142,16 @@ describe('BinService', () => {
       it('should throw an error if bin is not found', async () => {
         // Arrange
         const binId = 'non-existent-id';
-        mockPrismaClient.bin.findUnique.mockResolvedValueOnce(null);
+        
+        // Clear any previous mock implementations and create a new one
+        jest.clearAllMocks();
+        (mockPrismaClient.bin.findUnique as jest.Mock).mockReset();
+        (mockPrismaClient.bin.findUnique as jest.Mock).mockResolvedValueOnce(null);
 
         // Act & Assert
-        await expect(binService.get(binId)).rejects.toThrow(createAppError({
-          code: 'BIN_NOT_FOUND',
-          message: `Bin with ID ${binId} not found`,
-          httpStatus: 404,
-        }));
+        await expect(binService.get(binId)).rejects.toThrow(
+          `Bin with ID ${binId} not found`
+        );
         expect(mockPrismaClient.bin.findUnique).toHaveBeenCalledWith({
           where: { id: binId },
           include: { items: true }

@@ -1,10 +1,13 @@
 import type { Config } from '@jest/types';
 
+const esModules = ["nanoid"].join("|");
+
 const config: Config.InitialOptions = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/app/$1',
+    "^nanoid(/(.*)|$)": "nanoid$1",
   },
   setupFilesAfterEnv: [
     '<rootDir>/jest.setup.ts',
@@ -18,6 +21,8 @@ const config: Config.InitialOptions = {
       tsconfig: 'tsconfig.json',
     }],
   },
+  // Transform ESM modules like nanoid
+  transformIgnorePatterns: [`/node_modules/(?!${esModules})`],
   // Additional settings for better test coverage and reporting
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
