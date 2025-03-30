@@ -605,13 +605,19 @@ interface AppError {
 
 ### Code Organization
 ```
-src/
-├── api/           # API routes and controllers
+app/
+├── api/           # API routes (Next.js App Router)
 ├── services/      # Business logic
 ├── models/        # Data models
 ├── utils/         # Shared utilities
-├── config/        # Configuration
-└── types/         # TypeScript types
+├── types/         # TypeScript types
+├── components/    # React components
+├── lib/          # Shared libraries and configurations
+└── (routes)/     # Page routes and layouts
+
+prisma/           # Database schema and migrations
+public/          # Static assets
+docs/            # Documentation
 ```
 
 ### Testing Requirements
