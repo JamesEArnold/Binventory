@@ -1,5 +1,5 @@
 import { Bin } from '@/types/models';
-import { AppError } from '@/utils/errors';
+import { createAppError } from '@/utils/errors';
 import { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -64,7 +64,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
       });
 
       if (existingBin) {
-        throw new AppError({
+        throw createAppError({
           code: 'BIN_ALREADY_EXISTS',
           message: `A bin with label ${data.label} already exists`,
           httpStatus: 409,
@@ -84,7 +84,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
       } catch {
         // If creation fails due to a unique constraint violation, it means another request
         // created a bin with the same label between our check and create
-        throw new AppError({
+        throw createAppError({
           code: 'BIN_ALREADY_EXISTS',
           message: `A bin with label ${data.label} already exists`,
           httpStatus: 409,
@@ -99,7 +99,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
       });
 
       if (!bin) {
-        throw new AppError({
+        throw createAppError({
           code: 'BIN_NOT_FOUND',
           message: `Bin with ID ${id} not found`,
           httpStatus: 404,
@@ -116,7 +116,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
       });
 
       if (!existingBin) {
-        throw new AppError({
+        throw createAppError({
           code: 'BIN_NOT_FOUND',
           message: `Bin with ID ${id} not found`,
           httpStatus: 404,
@@ -130,7 +130,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
         });
 
         if (binWithLabel) {
-          throw new AppError({
+          throw createAppError({
             code: 'BIN_ALREADY_EXISTS',
             message: `A bin with label ${data.label} already exists`,
             httpStatus: 409,
@@ -156,7 +156,7 @@ export function createBinService({ prismaClient = prisma }: { prismaClient?: Pri
           where: { id },
         });
       } catch {
-        throw new AppError({
+        throw createAppError({
           code: 'BIN_NOT_FOUND',
           message: `Bin with ID ${id} not found`,
           httpStatus: 404,
