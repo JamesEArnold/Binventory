@@ -31,7 +31,8 @@ async function getBinWithItems(id: string) {
 }
 
 export default async function BinDetailPage({ params }: { params: { id: string } }) {
-  const bin = await getBinWithItems(params.id);
+  const { id } = await params;
+  const bin = await getBinWithItems(id);
   
   if (!bin) {
     notFound();
