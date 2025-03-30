@@ -121,7 +121,7 @@ export const QuickActions: FC<QuickActionsProps> = ({
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-100">
+    <div className="fixed inset-0 z-50 flex flex-col bg-white">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
         <button 

@@ -187,9 +187,9 @@ export const Scanner: FC<ScannerProps> = ({
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+    <div className="fixed inset-0 z-50 flex flex-col bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-900">
+      <div className="flex items-center justify-between p-4 bg-blue-600">
         <button 
           onClick={onClose}
           className="p-2 text-white"
