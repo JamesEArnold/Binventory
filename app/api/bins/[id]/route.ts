@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createBinService, BinService } from '@/services/bin.service';
+import { createBinService, BinService } from '@/services/bin';
 import { ApiResponse } from '@/types/api';
 import { Bin } from '@/types/models';
 import { AppError } from '@/utils/errors';

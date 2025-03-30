@@ -65,12 +65,12 @@ if (typeof Response === 'undefined') {
 
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
-import { createBinService, BinService } from '@/services/bin.service';
-import { AppError } from '@/utils/errors';
+import { createBinService, BinService } from '@/services/bin';
+import { createAppError } from '@/utils/errors';
 import { Bin } from '@/types/models';
 
 // Mock BinService
-jest.mock('@/services/bin.service');
+jest.mock('@/services/bin');
 
 // Mock variable declarations
 let mockBinService: jest.Mocked<BinService>;
@@ -169,7 +169,7 @@ describe('Bin API Routes', () => {
     describe('error cases', () => {
       it('should handle AppError', async () => {
         // Arrange
-        const error = new AppError({
+        const error = createAppError({
           code: 'TEST_ERROR',
           message: 'Test error',
           httpStatus: 400,
@@ -250,7 +250,7 @@ describe('Bin API Routes', () => {
     describe('error cases', () => {
       it('should handle AppError', async () => {
         // Arrange
-        const error = new AppError({
+        const error = createAppError({
           code: 'BIN_ALREADY_EXISTS',
           message: 'Bin already exists',
           httpStatus: 409,

@@ -65,12 +65,12 @@ if (typeof Response === 'undefined') {
 
 import { NextRequest } from 'next/server';
 import { GET, PUT, DELETE } from '../route';
-import { createBinService, BinService } from '@/services/bin.service';
-import { AppError } from '@/utils/errors';
+import { createBinService, BinService } from '@/services/bin';
+import { createAppError } from '@/utils/errors';
 import { Bin } from '@/types/models';
 
 // Mock BinService
-jest.mock('@/services/bin.service');
+jest.mock('@/services/bin');
 
 // Mock variable declarations
 let mockBinService: jest.Mocked<BinService>;
@@ -96,7 +96,6 @@ describe('Bin API Routes - Individual Operations', () => {
     mockRequest = new NextRequest(new URL('http://localhost:3000/api/bins/1'), {
       method: 'GET',
     });
-    mockParams = { params: { id: '1' } };
   });
 
   describe('GET /api/bins/[id]', () => {
@@ -132,7 +131,7 @@ describe('Bin API Routes - Individual Operations', () => {
       it('should handle AppError', async () => {
         // Arrange
         const binId = 'non-existent-id';
-        const error = new AppError({
+        const error = createAppError({
           code: 'BIN_NOT_FOUND',
           message: 'Bin not found',
           httpStatus: 404,
@@ -222,7 +221,7 @@ describe('Bin API Routes - Individual Operations', () => {
     describe('error cases', () => {
       it('should handle AppError', async () => {
         // Arrange
-        const error = new AppError({
+        const error = createAppError({
           code: 'BIN_NOT_FOUND',
           message: 'Bin not found',
           httpStatus: 404,
@@ -315,7 +314,7 @@ describe('Bin API Routes - Individual Operations', () => {
     describe('error cases', () => {
       it('should handle bin not found', async () => {
         // Arrange
-        const error = new AppError({
+        const error = createAppError({
           code: 'BIN_NOT_FOUND',
           message: 'Bin not found',
           httpStatus: 404,
