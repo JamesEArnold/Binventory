@@ -108,8 +108,8 @@ describe('Bin API Routes - Individual Operations', () => {
           location: 'test-location',
           qrCode: 'test-qr',
           description: 'test description',
-          createdAt: '2025-03-29T18:17:20.561Z',
-          updatedAt: '2025-03-29T18:17:20.561Z',
+          createdAt: new Date('2025-03-29T18:17:20.561Z'),
+          updatedAt: new Date('2025-03-29T18:17:20.561Z'),
         };
         mockBinService.get.mockResolvedValueOnce(mockBin);
 
@@ -121,7 +121,11 @@ describe('Bin API Routes - Individual Operations', () => {
         expect(mockBinService.get).toHaveBeenCalledWith('1');
         expect(data).toEqual({
           success: true,
-          data: mockBin,
+          data: {
+            ...mockBin,
+            createdAt: mockBin.createdAt.toISOString(),
+            updatedAt: mockBin.updatedAt.toISOString()
+          },
         });
         expect(response.status).toBe(200);
       });
@@ -155,7 +159,7 @@ describe('Bin API Routes - Individual Operations', () => {
 
       it('should handle invalid id parameter', async () => {
         // Act
-        const response = await GET(mockRequest, { params: {} }, mockBinService);
+        const response = await GET(mockRequest, { params: { id: '' } }, mockBinService);
         const data = await response.json();
 
         // Assert
@@ -195,8 +199,8 @@ describe('Bin API Routes - Individual Operations', () => {
           location: 'updated-location',
           qrCode: 'test-qr',
           description: 'updated description',
-          createdAt: '2025-03-29T18:17:20.561Z',
-          updatedAt: '2025-03-29T18:17:20.561Z',
+          createdAt: new Date('2025-03-29T18:17:20.561Z'),
+          updatedAt: new Date('2025-03-29T18:17:20.561Z'),
         };
         mockBinService.update.mockResolvedValueOnce(mockBin);
 
@@ -213,7 +217,11 @@ describe('Bin API Routes - Individual Operations', () => {
         expect(response.status).toBe(200);
         expect(data).toEqual({
           success: true,
-          data: mockBin,
+          data: {
+            ...mockBin,
+            createdAt: mockBin.createdAt.toISOString(),
+            updatedAt: mockBin.updatedAt.toISOString()
+          },
         });
       });
     });
@@ -267,7 +275,7 @@ describe('Bin API Routes - Individual Operations', () => {
 
       it('should handle invalid id parameter', async () => {
         // Act
-        const response = await PUT(mockRequest, { params: {} }, mockBinService);
+        const response = await PUT(mockRequest, { params: { id: '' } }, mockBinService);
         const data = await response.json();
 
         // Assert
@@ -338,7 +346,7 @@ describe('Bin API Routes - Individual Operations', () => {
 
       it('should handle invalid id parameter', async () => {
         // Act
-        const response = await DELETE(mockRequest, { params: {} }, mockBinService);
+        const response = await DELETE(mockRequest, { params: { id: '' } }, mockBinService);
         const data = await response.json();
 
         // Assert

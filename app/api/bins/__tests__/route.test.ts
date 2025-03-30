@@ -108,8 +108,8 @@ describe('Bin API Routes', () => {
           location: 'test-location',
           qrCode: 'test-qr',
           description: 'test description',
-          createdAt: '2025-03-29T18:17:20.726Z',
-          updatedAt: '2025-03-29T18:17:20.726Z',
+          createdAt: new Date('2025-03-29T18:17:20.726Z'),
+          updatedAt: new Date('2025-03-29T18:17:20.726Z'),
         };
         const mockResult = {
           bins: [mockBin],
@@ -134,7 +134,11 @@ describe('Bin API Routes', () => {
         });
         expect(data).toEqual({
           success: true,
-          data: mockResult.bins,
+          data: mockResult.bins.map(bin => ({
+            ...bin,
+            createdAt: bin.createdAt.toISOString(),
+            updatedAt: bin.updatedAt.toISOString()
+          })),
           meta: {
             pagination: mockResult.pagination,
           },
@@ -224,8 +228,8 @@ describe('Bin API Routes', () => {
           location: 'test-location',
           qrCode: 'test-qr',
           description: 'test description',
-          createdAt: '2025-03-29T18:17:20.726Z',
-          updatedAt: '2025-03-29T18:17:20.726Z',
+          createdAt: new Date('2025-03-29T18:17:20.726Z'),
+          updatedAt: new Date('2025-03-29T18:17:20.726Z'),
         };
         mockBinService.create.mockResolvedValueOnce(mockBin);
 
@@ -242,7 +246,11 @@ describe('Bin API Routes', () => {
         expect(response.status).toBe(201);
         expect(data).toEqual({
           success: true,
-          data: mockBin,
+          data: {
+            ...mockBin,
+            createdAt: mockBin.createdAt.toISOString(),
+            updatedAt: mockBin.updatedAt.toISOString()
+          },
         });
       });
     });
