@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @description ItemDetail component implementation from Phase 3.1: Core Web Interface
  * @phase Core Web Interface
@@ -54,6 +56,7 @@ export const ItemDetail: FC<ItemDetailProps> = ({
             <button 
               onClick={() => onEdit(item)}
               className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              type="button"
             >
               Edit Item
             </button>
@@ -80,6 +83,8 @@ export const ItemDetail: FC<ItemDetailProps> = ({
                   onClick={() => handleQuantityChange(-1)}
                   className="rounded-md border border-gray-300 bg-white p-1 text-gray-500 hover:bg-gray-50"
                   disabled={quantity <= 0}
+                  type="button"
+                  aria-label="Decrement quantity"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                     <path d="M5 12h14"></path>
@@ -91,6 +96,8 @@ export const ItemDetail: FC<ItemDetailProps> = ({
                 <button 
                   onClick={() => handleQuantityChange(1)}
                   className="rounded-md border border-gray-300 bg-white p-1 text-gray-500 hover:bg-gray-50"
+                  type="button"
+                  aria-label="Increment quantity"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                     <path d="M12 5v14"></path>
@@ -132,6 +139,7 @@ export const ItemDetail: FC<ItemDetailProps> = ({
                     checked={selectedBinId === binItem.binId}
                     onChange={() => setSelectedBinId(binItem.binId)}
                     disabled={!onMove}
+                    aria-label={binItem.binId}
                   />
                   <Link href={`/bins/${binItem.binId}`} className="text-sm font-medium text-blue-600 hover:underline">
                     {binItem.binId}
@@ -165,6 +173,7 @@ export const ItemDetail: FC<ItemDetailProps> = ({
                   onClick={handleMoveItem}
                   disabled={!selectedBinId || !targetBinId}
                   className="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  type="button"
                 >
                   Move
                 </button>
