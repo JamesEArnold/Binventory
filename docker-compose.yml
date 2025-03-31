@@ -32,7 +32,59 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      
+  # LocalStack S3 service for cloud storage emulation
+  localstack:
+    image: localstack/localstack:latest
+    container_name: binventory-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=binventory
+      - AWS_SECRET_ACCESS_KEY=binventory_local
+      - DEBUG=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TMPDIR=/tmp/localstack_tmp
+    volumes:
+      - localstack_tmp:/tmp/localstack_tmp
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  # One-time initialization container that creates the S3 bucket in LocalStack
+  s3-init:
+    container_name: binventory-s3-init
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.s3-init
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      - AWS_ACCESS_KEY_ID=binventory
+      - AWS_SECRET_ACCESS_KEY=binventory_local
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - DEBUG=1
+      - AWS_DEBUG=1
+      - AWS_PAGER=""
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      'echo "Waiting 5 seconds for LocalStack to stabilize..." && 
+      sleep 5 && 
+      echo "Checking LocalStack network connectivity..." && 
+      ping -c 3 localstack && 
+      echo "Running S3 init script..." && 
+      /init-s3-bucket.sh'
+    restart: "no" # Run once and exit
 
 volumes:
   postgres_data:
-  meilisearch_data: 
+  meilisearch_data:
+  localstack_data:
+  localstack_tmp: 
