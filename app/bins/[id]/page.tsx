@@ -5,10 +5,17 @@
  */
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { prisma } from '../../lib/prisma';
 import { ItemDetail } from '../../components/items/ItemDetail';
-import { Item } from '../../types/models';
+import { Item, BinItem } from '../../types/models';
+import { storageService } from '@/services/storage';
+
+// Define a type that includes the item relation
+interface BinItemWithItem extends BinItem {
+  item: Item;
+}
 
 // Get a single bin with all its items
 async function getBinWithItems(id: string) {
@@ -26,8 +33,44 @@ async function getBinWithItems(id: string) {
   if (!bin) {
     return null;
   }
+
+  // If the bin has an image key but URL is expired or missing, get a fresh URL
+  if (bin.imageKey && (!bin.imageUrl || isUrlExpired(bin.imageUrl))) {
+    try {
+      bin.imageUrl = await storageService.getFileUrl(bin.imageKey);
+      
+      // Update the bin with the fresh URL
+      await prisma.bin.update({
+        where: { id: bin.id },
+        data: { imageUrl: bin.imageUrl }
+      });
+    } catch (error) {
+      console.error('Error refreshing image URL:', error);
+      // If we can't refresh the URL, just show without image
+    }
+  }
   
   return bin;
+}
+
+// Check if a URL is expired or invalid
+function isUrlExpired(url: string): boolean {
+  try {
+    // Parse URL to get query parameters
+    const urlObj = new URL(url);
+    const expiresParam = urlObj.searchParams.get('Expires');
+    
+    if (!expiresParam) return true; // No expiration, assume expired
+    
+    const expiresTimestamp = parseInt(expiresParam, 10) * 1000; // Convert to milliseconds
+    const now = Date.now();
+    
+    // Check if URL is expired or will expire in the next hour
+    return expiresTimestamp < (now + 3600 * 1000);
+  } catch {
+    // If the URL is invalid, treat as expired
+    return true;
+  }
 }
 
 export default async function BinDetailPage({ params }: { params: { id: string } }) {
@@ -117,13 +160,31 @@ export default async function BinDetailPage({ params }: { params: { id: string }
         </div>
       </div>
       
-      {/* Bin description */}
-      {bin.description && (
-        <div className="mb-6 rounded-lg bg-gray-50 p-4">
-          <h2 className="text-lg font-medium text-gray-900">Description</h2>
-          <p className="mt-1 text-gray-600">{bin.description}</p>
-        </div>
-      )}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Bin description */}
+        {bin.description && (
+          <div className="rounded-lg bg-gray-50 p-4">
+            <h2 className="text-lg font-medium text-gray-900">Description</h2>
+            <p className="mt-1 text-gray-600">{bin.description}</p>
+          </div>
+        )}
+
+        {/* Bin image */}
+        {bin.imageUrl && (
+          <div className="rounded-lg bg-gray-50 p-4">
+            <h2 className="text-lg font-medium text-gray-900 mb-2">Image</h2>
+            <div className="relative aspect-video overflow-hidden rounded-md border border-gray-200">
+              <Image 
+                src={bin.imageUrl}
+                alt={`Image of ${bin.label}`}
+                fill
+                style={{ objectFit: 'cover' }}
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* QR code */}
       <div className="mb-6">
@@ -164,7 +225,7 @@ export default async function BinDetailPage({ params }: { params: { id: string }
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {bin.items.map((binItem: { itemId: string; item: Item | null }) => (
+            {bin.items.map((binItem: BinItemWithItem) => (
               <div key={binItem.itemId}>
                 {binItem.item && (
                   <ItemDetail 
