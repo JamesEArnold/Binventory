@@ -4,6 +4,8 @@ export interface Bin {
   location: string;
   qrCode: string;
   description?: string | null;
+  imageUrl?: string | null;
+  imageKey?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
