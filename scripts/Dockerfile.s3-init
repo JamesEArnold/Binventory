@@ -1,0 +1,21 @@
+FROM amazon/aws-cli:latest
+
+# Install debugging tools
+RUN yum install -y curl iputils net-tools telnet bind-utils
+
+# Copy initialization script
+COPY scripts/init-s3-bucket.sh /init-s3-bucket.sh
+
+# Make script runnable
+RUN chmod +x /init-s3-bucket.sh
+
+# AWS CLI defaults to make sure it works with LocalStack
+ENV AWS_DEFAULT_REGION=us-east-1
+ENV AWS_ACCESS_KEY_ID=binventory
+ENV AWS_SECRET_ACCESS_KEY=binventory_local
+ENV AWS_ENDPOINT_URL=http://localstack:4566
+ENV AWS_CLI_AUTO_PROMPT=on-partial
+ENV AWS_PAGER=""
+
+# Run the initialization script
+CMD ["/init-s3-bucket.sh"] 
