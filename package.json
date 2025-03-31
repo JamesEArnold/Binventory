@@ -13,9 +13,14 @@
     "test:coverage": "jest --coverage",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:deploy": "prisma migrate deploy"
+    "prisma:deploy": "prisma migrate deploy",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "dev:docker": "npm run docker:up && npm run dev"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.777.0",
+    "@aws-sdk/s3-request-presigner": "^3.777.0",
     "@prisma/client": "^6.5.0",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
