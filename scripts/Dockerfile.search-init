@@ -1,0 +1,11 @@
+FROM alpine:3.19
+
+# Install curl for making HTTP requests
+RUN apk add --no-cache curl bash
+
+# Copy the initialization script
+COPY scripts/init-search.sh /init-search.sh
+RUN chmod +x /init-search.sh
+
+# Set the script as the entrypoint
+ENTRYPOINT ["/init-search.sh"] 
