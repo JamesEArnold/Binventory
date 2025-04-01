@@ -17,6 +17,11 @@ import { Bin, Item } from '@prisma/client';
 // Define interface for MeiliSearch document with category name
 interface ItemWithCategory extends Item {
   'category.name': string;
+  type: 'item';
+}
+
+interface BinWithType extends Bin {
+  type: 'bin';
 }
 
 /**
@@ -95,6 +100,7 @@ export function createSearchService(
       // Transform items to include category name for searching
       const itemsToIndex = items.map(item => ({
         ...item,
+        type: 'item',
         'category.name': item.category.name,
       }));
 
@@ -112,7 +118,11 @@ export function createSearchService(
    */
   async function indexBin(bin: Bin): Promise<void> {
     try {
-      await meilisearch.index('bins').addDocuments([bin]);
+      const binToIndex: BinWithType = {
+        ...bin,
+        type: 'bin'
+      };
+      await meilisearch.index('bins').addDocuments([binToIndex]);
     } catch (error) {
       console.error('Failed to index bin:', error);
       throw new Error(`Bin indexing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -132,6 +142,7 @@ export function createSearchService(
 
       const itemToIndex: ItemWithCategory = {
         ...item,
+        type: 'item',
         'category.name': category?.name || '',
       };
 

@@ -83,6 +83,20 @@ services:
       /init-s3-bucket.sh'
     restart: "no" # Run once and exit
 
+  # One-time initialization container for search indices
+  search-init:
+    container_name: binventory-search-init
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.search-init
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+    environment:
+      - MEILI_HOST=http://meilisearch:7700
+      - MEILI_MASTER_KEY=binventory_meili_local_key
+    restart: "no" # Run once and exit
+
 volumes:
   postgres_data:
   meilisearch_data:

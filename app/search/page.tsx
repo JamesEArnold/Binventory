@@ -51,17 +51,28 @@ export default function SearchPage() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: searchQuery,
+          limit: 20,
+          offset: 0
+        })
+      });
       
       if (!response.ok) {
-        throw new Error('Search failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Search failed');
       }
       
       const data = await response.json();
-      setResults(data.data || []);
+      setResults(data.hits || []);
     } catch (err) {
       console.error('Search error:', err);
-      setError('Search failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Search failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
