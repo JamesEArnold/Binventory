@@ -9,6 +9,7 @@
 import { FC, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createScannerService, ScanResult } from '../../services/scanner';
+import jsQR from 'jsqr';
 
 export interface ScannerProps {
   onScanComplete?: (result: ScanResult) => void;
@@ -112,36 +113,43 @@ export const Scanner: FC<ScannerProps> = ({
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       try {
-        // This is where you'd integrate a QR code detection library
-        // For example, with jsQR or a similar library:
-        // const code = jsQR(imageData.data, imageData.width, imageData.height);
+        // Get image data from canvas
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
-        // For demo purposes, we'll simulate a successful scan after 2 seconds
-        // In a real implementation, you'd detect QR codes from the canvas imageData
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Use jsQR to detect QR code
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
         
-        const mockScanUrl = `http://localhost:3000/b/abc123`;
-        
-        // Process the scan result
-        const result = await scannerService.processScan(mockScanUrl);
-        setLastScan(result);
-        
-        if (result.success) {
+        // If QR code detected
+        if (code) {
+          console.log('QR code detected:', code.data);
+          
           // Provide haptic feedback if available
           if (navigator.vibrate) {
             navigator.vibrate(200);
           }
           
-          // Call the callback if provided
-          if (onScanComplete) {
-            onScanComplete(result);
+          try {
+            // Process the scan result
+            const result = await scannerService.processScan(code.data);
+            console.log('Scan result:', result);
+            setLastScan(result);
+            
+            if (result.success) {
+              // Call the callback if provided
+              if (onScanComplete) {
+                onScanComplete(result);
+              }
+              
+              // Pause scanning
+              setIsScanning(false);
+            } else {
+              setScanError(result.error || 'Failed to process QR code');
+              // Continue scanning
+            }
+          } catch (error) {
+            console.error('Error processing scan:', error);
+            setScanError(error instanceof Error ? error.message : 'Failed to process scan');
           }
-          
-          // Pause scanning
-          setIsScanning(false);
-        } else {
-          setScanError(result.error || 'Failed to process QR code');
-          // Continue scanning
         }
       } catch (error) {
         console.error('QR scan error:', error);

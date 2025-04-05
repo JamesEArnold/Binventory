@@ -2,7 +2,10 @@ import QRCode from 'qrcode';
 import { nanoid } from 'nanoid';
 import { createHash } from 'crypto';
 import { QRCodeData, QRCodeConfig, URLConfig } from '../types/qr';
-import { prisma } from '../lib/prisma';
+import { prisma as prismaClient } from '../lib/prisma';
+
+// Only use prisma in a server context
+const prisma = typeof window === 'undefined' ? prismaClient : null;
 
 function generateChecksum(data: Omit<QRCodeData, 'checksum'>): string {
   const str = JSON.stringify(data);
@@ -14,7 +17,12 @@ function generateShortCode(length: number): string {
 }
 
 export function createQRCodeService(config: QRCodeConfig, urlConfig: URLConfig) {
+  // Server-side only function
   async function generateQRCode(binId: string): Promise<{ qrCode: string; qrData: QRCodeData }> {
+    if (!prisma) {
+      throw new Error('This function can only be used server-side');
+    }
+    
     // Verify bin exists
     const bin = await prisma.bin.findUnique({ where: { id: binId } });
     if (!bin) {
@@ -58,7 +66,12 @@ export function createQRCodeService(config: QRCodeConfig, urlConfig: URLConfig) 
     return { qrCode, qrData };
   }
 
-  async function validateQRCode(shortCode: string): Promise<QRCodeData> {
+  // Server-side validation using Prisma
+  async function validateQRCodeServer(shortCode: string): Promise<QRCodeData> {
+    if (!prisma) {
+      throw new Error('This function can only be used server-side');
+    }
+    
     const qrCode = await prisma.qrCode.findUnique({
       where: { shortCode },
       include: { bin: true },
@@ -85,6 +98,30 @@ export function createQRCodeService(config: QRCodeConfig, urlConfig: URLConfig) 
     }
 
     return data;
+  }
+
+  // Client-side validation using API
+  async function validateQRCodeClient(shortCode: string): Promise<QRCodeData> {
+    const response = await fetch(`/api/qr/validate?code=${encodeURIComponent(shortCode)}`);
+    
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || 'Failed to validate QR code');
+    }
+    
+    const data = await response.json();
+    return data.data;
+  }
+
+  // Smart validate function that works in both environments
+  async function validateQRCode(shortCode: string): Promise<QRCodeData> {
+    // If we're in a browser environment, use the client method
+    if (typeof window !== 'undefined') {
+      return validateQRCodeClient(shortCode);
+    }
+    
+    // Otherwise use the server method
+    return validateQRCodeServer(shortCode);
   }
 
   return {

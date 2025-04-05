@@ -4,23 +4,7 @@
  * @dependencies Phase 3.1
  */
 
-import { createQRCodeService } from './qr';
-import { QRCodeConfig, URLConfig } from '../types/qr';
-
-// Default configurations
-const qrConfig: QRCodeConfig = {
-  size: 300,
-  errorCorrection: 'M',
-  format: 'SVG',
-  margin: 4,
-};
-
-const urlConfig: URLConfig = {
-  baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-  shortCodeLength: 8,
-  expirationDays: 365,
-};
-
+// Define the types and interfaces
 export interface ScanResult {
   success: boolean;
   binId?: string;
@@ -36,7 +20,7 @@ export interface OfflineQueueItem {
 }
 
 export function createScannerService() {
-  const qrService = createQRCodeService(qrConfig, urlConfig);
+  // Initialize offline queue (without qrService reference)
   const offlineQueue: OfflineQueueItem[] = [];
   
   /**
@@ -44,19 +28,66 @@ export function createScannerService() {
    */
   async function processScan(qrData: string): Promise<ScanResult> {
     try {
-      // Extract the short code from the scanned URL
-      const url = new URL(qrData);
-      const pathParts = url.pathname.split('/');
-      const shortCode = pathParts[pathParts.length - 1];
+      console.log('Processing scan data:', qrData);
       
-      // Validate the QR code
-      const validatedQR = await qrService.validateQRCode(shortCode);
+      // Check if we're in a client environment
+      if (typeof window === 'undefined') {
+        throw new Error('Scanner must be used in client environment');
+      }
+      
+      // Try to validate using our API endpoint
+      let binId: string | undefined;
+      
+      // If it looks like a URL with our short code
+      if (qrData.includes('/b/')) {
+        // Extract the short code from the scanned URL
+        const url = new URL(qrData);
+        const pathParts = url.pathname.split('/');
+        const shortCode = pathParts[pathParts.length - 1];
+        
+        // Call the validate API
+        const response = await fetch(`/api/qr/validate?code=${encodeURIComponent(shortCode)}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('QR validation error:', errorText);
+          throw new Error(errorText || 'Failed to validate QR code');
+        }
+        
+        const validationResult = await response.json();
+        console.log('Validation result:', validationResult);
+        
+        if (!validationResult.success) {
+          throw new Error(validationResult.error || 'Invalid QR code');
+        }
+        
+        binId = validationResult.binId;
+      } else {
+        // Try to directly call the validate API with whatever we got
+        const response = await fetch(`/api/qr/validate?code=${encodeURIComponent(qrData)}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('QR validation error:', errorText);
+          throw new Error(errorText || 'Failed to validate QR code');
+        }
+        
+        const validationResult = await response.json();
+        console.log('Validation result:', validationResult);
+        
+        if (!validationResult.success) {
+          throw new Error(validationResult.error || 'Invalid QR code');
+        }
+        
+        binId = validationResult.binId;
+      }
       
       return {
         success: true,
-        binId: validatedQR.binId
+        binId
       };
     } catch (error) {
+      console.error('Error processing scan:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Invalid QR code'
