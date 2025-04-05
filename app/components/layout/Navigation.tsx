@@ -12,13 +12,19 @@ import { useState } from 'react';
 
 export function Navigation() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setIsMobileMenuOpen(false);
     }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
@@ -30,7 +36,8 @@ export function Navigation() {
               <span className="text-xl font-semibold text-blue-600">Binventory</span>
             </Link>
             
-            <div className="ml-10 flex items-center space-x-4">
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex ml-10 items-center space-x-4">
               <Link 
                 href="/bins" 
                 className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -55,7 +62,8 @@ export function Navigation() {
           </div>
           
           <div className="flex items-center">
-            <form onSubmit={handleSearch} className="relative">
+            {/* Desktop Search */}
+            <form onSubmit={handleSearch} className="relative hidden md:block">
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <svg 
                   className="w-5 h-5 text-gray-400" 
@@ -76,14 +84,15 @@ export function Navigation() {
                 type="search" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full md:w-64 pl-10 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                className="w-64 pl-10 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
                 placeholder="Search items, bins..." 
               />
             </form>
             
+            {/* Scanner Button */}
             <Link
               href="/scanner"
-              className="ml-4 relative rounded-full bg-blue-100 p-1 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="ml-3 relative rounded-full bg-blue-100 p-1 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label="Open scanner"
             >
               <svg 
@@ -108,9 +117,10 @@ export function Navigation() {
               </svg>
             </Link>
             
+            {/* Notification Button */}
             <button 
               type="button" 
-              className="ml-4 relative rounded-full bg-gray-100 p-1 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="ml-3 relative rounded-full bg-gray-100 p-1 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               <svg 
                 className="h-6 w-6 text-gray-600" 
@@ -130,8 +140,95 @@ export function Navigation() {
                 3
               </span>
             </button>
+            
+            {/* Mobile Menu Button */}
+            <button
+              type="button"
+              className="ml-3 md:hidden rounded-md p-1 text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onClick={toggleMobileMenu}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {isMobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
+        
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-3 pb-4 space-y-3">
+            <form onSubmit={handleSearch} className="relative px-2">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
+                <svg 
+                  className="w-5 h-5 text-gray-400" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24" 
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth="2" 
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <input 
+                type="search" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                placeholder="Search items, bins..." 
+              />
+            </form>
+            
+            <div className="space-y-1 px-2">
+              <Link 
+                href="/bins" 
+                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Bins
+              </Link>
+              
+              <Link 
+                href="/items" 
+                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Items
+              </Link>
+              
+              <Link 
+                href="/categories" 
+                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Categories
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
