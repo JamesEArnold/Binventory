@@ -70,12 +70,14 @@ export default function ScannerPage() {
     <main className="bg-white">
       {binId ? (
         <QuickActions 
+          key="quick-actions"
           binId={binId}
           items={items}
           onClose={handleClose}
         />
       ) : (
         <Scanner 
+          key="scanner"
           onScanComplete={handleScanComplete}
           onClose={handleClose}
         />

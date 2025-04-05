@@ -6,7 +6,7 @@
  * @dependencies Phase 3.1
  */
 
-import { FC, useState, useEffect, useRef } from 'react';
+import { FC, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createScannerService, ScanResult } from '../../services/scanner';
 import jsQR from 'jsqr';
@@ -22,97 +22,152 @@ export const Scanner: FC<ScannerProps> = ({
 }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [isFlashlightOn, setIsFlashlightOn] = useState(false);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameIdRef = useRef<number | null>(null);
+  
   const scannerService = createScannerService();
   const router = useRouter();
   
-  // Check for secure context
-  useEffect(() => {
-    // Check if we're in a secure context (HTTPS or localhost)
-    if (typeof window !== 'undefined' && window.isSecureContext === false) {
-      setScanError('Camera access requires HTTPS. Please use a secure connection.');
+  // Centralized function to stop camera stream and clean up resources
+  const stopCamera = useCallback(() => {
+    console.log('Stopping camera...');
+    
+    // Cancel any ongoing scanning
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
     }
+    
+    // Cancel animation frame
+    if (animationFrameIdRef.current) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
+    }
+    
+    // Stop all media tracks
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => {
+        track.stop();
+        console.log('Track stopped:', track.kind, track.readyState);
+      });
+      streamRef.current = null;
+    }
+    
+    // Clear video source
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    // Update state
+    setIsScanning(false);
+    setIsLoading(false);
   }, []);
   
-  // Request camera permission and set up video stream
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    
-    async function setupCamera() {
-      try {
-        // Check if mediaDevices API is available
-        if (!navigator.mediaDevices) {
-          // Try to handle iOS Safari specific issues
-          if (typeof navigator !== 'undefined' && 
-              navigator.userAgent && 
-              /iPad|iPhone|iPod/.test(navigator.userAgent)) {
-            throw new Error('Camera access is limited on iOS. Please ensure you are using Safari and a secure HTTPS connection.');
-          } else {
-            throw new Error('Camera API is not available in your browser. Please ensure you are using HTTPS or a supported browser.');
-          }
-        }
-        
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        
-        setHasPermission(true);
-        stream = mediaStream;
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-          videoRef.current.play().catch(e => {
-            console.error('Failed to play video:', e);
-          });
-        }
-      } catch (error) {
-        console.error('Camera access error:', error);
-        setHasPermission(false);
-        setScanError(error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.');
+  // Start the camera with specified settings
+  const startCamera = useCallback(async () => {
+    try {
+      // First ensure any previous camera is stopped
+      stopCamera();
+      
+      // Set loading state
+      setIsLoading(true);
+      
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices) {
+        throw new Error('Camera API is not available in your browser.');
       }
+      
+      console.log('Starting camera...');
+      
+      // Use simpler constraints that worked in original code
+      const constraints: MediaStreamConstraints = {
+        video: { facingMode: 'environment' },
+        audio: false
+      };
+      
+      // Attempt to get camera access
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      console.log('Camera access granted with tracks:', mediaStream.getTracks().length);
+      
+      setHasPermission(true);
+      streamRef.current = mediaStream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        
+        try {
+          // Force play and wait for it to start
+          await videoRef.current.play();
+          console.log('Video is now playing');
+          
+          // Automatically start scanning once video is playing
+          setIsScanning(true);
+          setIsLoading(false);
+        } catch (e) {
+          console.error('Failed to play video:', e);
+          setIsLoading(false);
+          throw e;
+        }
+      }
+      
+    } catch (error) {
+      console.error('Camera access error:', error);
+      setHasPermission(false);
+      setScanError(error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.');
+      setIsLoading(false);
     }
+  }, [stopCamera]);
+  
+  // Request camera permission on component mount
+  useEffect(() => {
+    // Start camera automatically on mount
+    startCamera();
     
-    // Add a small delay to ensure browser APIs are fully initialized
-    setTimeout(() => {
-      setupCamera();
-    }, 300);
-    
-    // Cleanup
+    // Cleanup when component unmounts
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
     };
-  }, []);
+  }, [startCamera, stopCamera]);
   
   // Handle scanning logic
   useEffect(() => {
-    if (!isScanning || !hasPermission || !videoRef.current || !canvasRef.current) return;
+    if (!isScanning || !hasPermission || !videoRef.current || !canvasRef.current) {
+      return;
+    }
     
-    let animationFrameId: number;
+    console.log('Setting up QR scanning...');
     
+    // Function to scan QR code from current video frame
     const scanQRCode = async () => {
-      if (!videoRef.current || !canvasRef.current) return;
+      if (!isScanning || !videoRef.current || !canvasRef.current) return;
       
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      if (!context) return;
+      
+      // Accept readyState >= 1 (at least metadata loaded)
+      if (video.readyState < 1) return;
       
       // Match canvas dimensions to video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
       
       // Draw current video frame to canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
       try {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
         // Get image data from canvas
         const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
         
@@ -122,6 +177,9 @@ export const Scanner: FC<ScannerProps> = ({
         // If QR code detected
         if (code) {
           console.log('QR code detected:', code.data);
+          
+          // Stop camera immediately when QR code is detected
+          stopCamera();
           
           // Provide haptic feedback if available
           if (navigator.vibrate) {
@@ -139,12 +197,8 @@ export const Scanner: FC<ScannerProps> = ({
               if (onScanComplete) {
                 onScanComplete(result);
               }
-              
-              // Pause scanning
-              setIsScanning(false);
             } else {
               setScanError(result.error || 'Failed to process QR code');
-              // Continue scanning
             }
           } catch (error) {
             console.error('Error processing scan:', error);
@@ -152,43 +206,68 @@ export const Scanner: FC<ScannerProps> = ({
           }
         }
       } catch (error) {
-        console.error('QR scan error:', error);
-        setScanError('Failed to process QR code');
+        console.error('Draw or QR scan error:', error);
       }
     };
     
-    const scanInterval: NodeJS.Timeout = setInterval(scanQRCode, 500);
+    // Set up interval for scanning at a reasonable rate
+    scanIntervalRef.current = setInterval(scanQRCode, 500);
     
     // Use requestAnimationFrame for camera preview
     const renderPreview = () => {
+      if (!isScanning) return;
+      
       if (videoRef.current && canvasRef.current) {
-        const context = canvasRef.current.getContext('2d');
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        
         if (context) {
-          context.drawImage(
-            videoRef.current, 
-            0, 0, 
-            canvasRef.current.width, 
-            canvasRef.current.height
-          );
+          // Accept any readyState (looser check)
+          if (video.readyState > 0) {
+            // Set canvas size to match video if needed
+            if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+              const width = video.videoWidth || video.clientWidth || 640;
+              const height = video.videoHeight || video.clientHeight || 480;
+              canvas.width = width;
+              canvas.height = height;
+            }
+            
+            // Draw video frame to canvas
+            try {
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            } catch (e) {
+              console.error('Error drawing to canvas:', e);
+            }
+          }
         }
       }
-      animationFrameId = requestAnimationFrame(renderPreview);
+      
+      animationFrameIdRef.current = requestAnimationFrame(renderPreview);
     };
     
     renderPreview();
     
+    // Cleanup function
     return () => {
-      clearInterval(scanInterval);
-      cancelAnimationFrame(animationFrameId);
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+      
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+        animationFrameIdRef.current = null;
+      }
     };
-  }, [isScanning, hasPermission, onScanComplete, scannerService]);
+  }, [isScanning, hasPermission, onScanComplete, scannerService, stopCamera]);
   
   // Toggle flashlight
   const toggleFlashlight = async () => {
-    if (!videoRef.current?.srcObject) return;
+    if (!streamRef.current) return;
     
-    const stream = videoRef.current.srcObject as MediaStream;
-    const track = stream.getVideoTracks()[0];
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) return;
     
     try {
       // Define enhanced MediaTrackCapabilities with torch property
@@ -221,6 +300,7 @@ export const Scanner: FC<ScannerProps> = ({
   // Navigate to bin page on successful scan
   const navigateToBin = () => {
     if (lastScan?.success && lastScan.binId) {
+      stopCamera();
       router.push(`/bins/${lastScan.binId}`);
     }
   };
@@ -229,15 +309,21 @@ export const Scanner: FC<ScannerProps> = ({
   const restartScan = () => {
     setScanError(null);
     setLastScan(null);
-    setIsScanning(true);
+    startCamera();
+  };
+  
+  // Handle close button
+  const handleClose = () => {
+    stopCamera();
+    if (onClose) onClose();
   };
   
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-blue-600">
         <button 
-          onClick={onClose}
+          onClick={handleClose}
           className="p-2 text-white"
           aria-label="Close scanner"
         >
@@ -250,7 +336,7 @@ export const Scanner: FC<ScannerProps> = ({
           onClick={toggleFlashlight}
           className={`p-2 ${isFlashlightOn ? 'text-yellow-400' : 'text-white'}`}
           aria-label="Toggle flashlight"
-          disabled={!hasPermission}
+          disabled={!hasPermission || !isScanning}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707M12 20.488V22" />
@@ -259,7 +345,7 @@ export const Scanner: FC<ScannerProps> = ({
       </div>
       
       {/* Scanner viewport */}
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1 overflow-hidden bg-black">
         {hasPermission === false && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white p-6 text-center">
             <div>
@@ -269,7 +355,7 @@ export const Scanner: FC<ScannerProps> = ({
               <p className="text-lg font-medium mb-4">Camera access required</p>
               <p className="mb-4">Please enable camera permissions in your browser settings to scan QR codes.</p>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md"
               >
                 Close
@@ -280,20 +366,37 @@ export const Scanner: FC<ScannerProps> = ({
         
         {hasPermission === true && (
           <>
+            {/* Video element */}
             <video 
               ref={videoRef} 
-              className="absolute inset-0 object-cover w-full h-full opacity-0" 
+              className="absolute inset-0 object-cover w-full h-full z-10" 
               playsInline 
               muted
+              autoPlay
             />
+            
+            {/* Canvas overlay */}
             <canvas 
               ref={canvasRef} 
-              className="absolute inset-0 w-full h-full" 
+              className="absolute inset-0 w-full h-full z-20" 
             />
+            
+            {/* Display loading indicator while camera initializes */}
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-30">
+                <div className="bg-white p-4 rounded-md shadow-md">
+                  <svg className="animate-spin h-8 w-8 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <p className="mt-2 text-center text-sm font-medium">Initializing camera...</p>
+                </div>
+              </div>
+            )}
             
             {/* Scanning overlay */}
             {isScanning && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                 <div className="relative w-3/4 max-w-xs aspect-square">
                   {/* Scanner frame */}
                   <div className="absolute inset-0 border-2 border-blue-500 rounded-lg" />
@@ -308,7 +411,7 @@ export const Scanner: FC<ScannerProps> = ({
                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-blue-500 animate-scan-line" />
                 </div>
                 
-                <div className="absolute bottom-8 left-0 right-0 text-center text-white text-sm">
+                <div className="absolute bottom-8 left-0 right-0 text-center text-white text-sm drop-shadow-lg">
                   Position QR code within the frame
                 </div>
               </div>
@@ -316,7 +419,7 @@ export const Scanner: FC<ScannerProps> = ({
             
             {/* Scan result */}
             {lastScan && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 p-6">
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 p-6 z-40">
                 <div className="bg-white rounded-lg p-6 max-w-sm w-full">
                   {lastScan.success ? (
                     <>
@@ -367,31 +470,34 @@ export const Scanner: FC<ScannerProps> = ({
         
         {/* Display error message if any */}
         {scanError && !lastScan && (
-          <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white p-3 text-center">
+          <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white p-3 text-center z-50">
             {scanError}
           </div>
         )}
       </div>
       
-      {/* Footer with controls */}
+      {/* Footer with controls - Only show when camera needs to be restarted */}
       <div className="p-4 bg-gray-900">
-        <button
-          onClick={() => setIsScanning(true)}
-          disabled={isScanning || hasPermission !== true}
-          className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center"
-        >
-          {isScanning ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Scanning...
-            </>
-          ) : (
-            'Start Scanning'
-          )}
-        </button>
+        {!isScanning && hasPermission === true && !isLoading && !lastScan && (
+          <button
+            onClick={startCamera}
+            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium flex items-center justify-center"
+          >
+            Start Scanning
+          </button>
+        )}
+        
+        {isScanning && (
+          <div className="text-white text-center text-sm">
+            Scanning for QR codes...
+          </div>
+        )}
+        
+        {isLoading && (
+          <div className="text-white text-center text-sm">
+            Initializing camera...
+          </div>
+        )}
       </div>
     </div>
   );
