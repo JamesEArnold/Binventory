@@ -30,12 +30,32 @@ export const Scanner: FC<ScannerProps> = ({
   const scannerService = createScannerService();
   const router = useRouter();
   
+  // Check for secure context
+  useEffect(() => {
+    // Check if we're in a secure context (HTTPS or localhost)
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      setScanError('Camera access requires HTTPS. Please use a secure connection.');
+    }
+  }, []);
+  
   // Request camera permission and set up video stream
   useEffect(() => {
     let stream: MediaStream | null = null;
     
     async function setupCamera() {
       try {
+        // Check if mediaDevices API is available
+        if (!navigator.mediaDevices) {
+          // Try to handle iOS Safari specific issues
+          if (typeof navigator !== 'undefined' && 
+              navigator.userAgent && 
+              /iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            throw new Error('Camera access is limited on iOS. Please ensure you are using Safari and a secure HTTPS connection.');
+          } else {
+            throw new Error('Camera API is not available in your browser. Please ensure you are using HTTPS or a supported browser.');
+          }
+        }
+        
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' }
         });
@@ -45,16 +65,21 @@ export const Scanner: FC<ScannerProps> = ({
         
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
-          videoRef.current.play();
+          videoRef.current.play().catch(e => {
+            console.error('Failed to play video:', e);
+          });
         }
       } catch (error) {
         console.error('Camera access error:', error);
         setHasPermission(false);
-        setScanError('Camera access denied. Please enable camera permissions.');
+        setScanError(error instanceof Error ? error.message : 'Camera access denied. Please enable camera permissions.');
       }
     }
     
-    setupCamera();
+    // Add a small delay to ensure browser APIs are fully initialized
+    setTimeout(() => {
+      setupCamera();
+    }, 300);
     
     // Cleanup
     return () => {
@@ -69,7 +94,6 @@ export const Scanner: FC<ScannerProps> = ({
     if (!isScanning || !hasPermission || !videoRef.current || !canvasRef.current) return;
     
     let animationFrameId: number;
-    const scanInterval: NodeJS.Timeout = setInterval(scanQRCode, 500);
     
     const scanQRCode = async () => {
       if (!videoRef.current || !canvasRef.current) return;
@@ -125,6 +149,8 @@ export const Scanner: FC<ScannerProps> = ({
       }
     };
     
+    const scanInterval: NodeJS.Timeout = setInterval(scanQRCode, 500);
+    
     // Use requestAnimationFrame for camera preview
     const renderPreview = () => {
       if (videoRef.current && canvasRef.current) {
@@ -157,11 +183,23 @@ export const Scanner: FC<ScannerProps> = ({
     const track = stream.getVideoTracks()[0];
     
     try {
-      const capabilities = track.getCapabilities();
+      // Define enhanced MediaTrackCapabilities with torch property
+      interface EnhancedMediaTrackCapabilities extends MediaTrackCapabilities {
+        torch?: boolean;
+      }
+      
+      // Cast to get torch capability
+      const capabilities = track.getCapabilities() as EnhancedMediaTrackCapabilities;
+      
       // Check if torch is supported
       if (capabilities.torch) {
+        // Define advanced constraints with torch option
+        interface TorchConstraintSet extends MediaTrackConstraintSet {
+          torch?: boolean;
+        }
+        
         await track.applyConstraints({
-          advanced: [{ torch: !isFlashlightOn }]
+          advanced: [{ torch: !isFlashlightOn } as TorchConstraintSet]
         });
         setIsFlashlightOn(!isFlashlightOn);
       } else {
