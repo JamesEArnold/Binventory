@@ -312,7 +312,9 @@ export const PrintButton: FC<PrintButtonProps> = ({
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => {
     setIsModalOpen(false);
-    if (onClose) onClose();
+    if (onClose) {
+      onClose();
+    }
   };
   
   const handleCustomizePrint = () => {
