@@ -9,7 +9,7 @@ Binventory is a modern inventory management system designed for organizing items
 - **Database**: PostgreSQL with Prisma ORM
 - **Search**: MeiliSearch for fast, typo-tolerant search
 - **Storage**: Cloud storage for images and QR codes
-- **Authentication**: JWT-based auth system
+- **Authentication**: NextAuth.js with JWT and Prisma adapter
 
 ## Implementation Phases
 
@@ -692,6 +692,507 @@ interface DesignSystem {
 - Templates render correctly
 - Plugin system is stable
 
+## Phase 6: Authentication & Authorization
+
+### Phase 6.1: Core Authentication System
+**Context**: Secure authentication system for user accounts and access control
+- Implementation Priority: High
+- Dependencies: Phase 1.1
+- Technical Requirements:
+  - NextAuth.js integration
+  - Database schema extensions for users and sessions
+  - JWT-based authentication
+  - Role-based access control
+
+**Implementation Tasks**:
+1. Implement authentication infrastructure:
+   - NextAuth API routes
+   - Prisma adapter and schema models
+   - Session management
+   - JWT configuration
+   - Provider configuration
+
+2. Create authentication UI:
+   - Login page
+   - Registration page
+   - Profile management
+   - Password reset functionality
+   - Email verification
+
+3. Implement access control:
+   - Route protection middleware
+   - Permission-based component rendering
+   - API route protection
+   - Role management interface
+   - Access policies
+
+**Detailed Specifications**:
+
+1. User Model:
+```typescript
+model User {
+  id              String    @id @default(uuid())
+  name            String?
+  email           String    @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?   // Hashed password for credentials provider
+  role            Role      @default(USER)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  accounts        Account[]
+  sessions        Session[]
+  
+  @@map("users")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// NextAuth models
+model Account {
+  // OAuth account information
+}
+
+model Session {
+  // Session information
+}
+
+model VerificationToken {
+  // Email verification tokens
+}
+```
+
+2. Authentication Flow:
+```typescript
+interface AuthFlows {
+  credentials: {
+    login: {
+      route: '/api/auth/callback/credentials',
+      method: 'POST',
+      body: { email: string, password: string },
+      responses: {
+        success: { status: 200, redirect: true },
+        error: { status: 401, error: string }
+      }
+    },
+    register: {
+      route: '/api/auth/register',
+      method: 'POST',
+      body: { name: string, email: string, password: string },
+      responses: {
+        success: { status: 200, user: User },
+        error: { status: 400, error: string }
+      }
+    }
+  },
+  oauth: {
+    providers: ['google', 'github'],
+    flow: 'OAuth 2.0 Authorization Code'
+  }
+}
+```
+
+3. Access Control Specifications:
+```typescript
+interface AccessControl {
+  roles: {
+    USER: {
+      permissions: [
+        'bins:read',
+        'bins:create',
+        'items:read',
+        'items:create',
+        'profile:read',
+        'profile:update'
+      ]
+    },
+    ADMIN: {
+      permissions: [
+        '*:*' // All permissions
+      ]
+    }
+  },
+  resources: {
+    bins: ['read', 'create', 'update', 'delete'],
+    items: ['read', 'create', 'update', 'delete'],
+    categories: ['read', 'create', 'update', 'delete'],
+    users: ['read', 'create', 'update', 'delete'],
+    profile: ['read', 'update']
+  }
+}
+```
+
+**Success Criteria**:
+- Authentication system works reliably
+- Protection of sensitive routes and API endpoints
+- User registration and login process is intuitive
+- Password reset functionality works as expected
+- User roles and permissions enforce proper access control
+
+**Implementation Plan**:
+
+1. Database Schema Extension:
+   - Location: `prisma/schema.prisma`
+   - Implementation: Add NextAuth.js compatible models
+   - Key features:
+     - User model with role-based permissions
+     - OAuth account linking support
+     - Session management
+     - Email verification tokens
+   - Reference: NextAuth.js Prisma adapter schema
+
+2. NextAuth API Route:
+   - Location: `app/api/auth/[...nextauth]/route.ts`
+   - Implementation: NextAuth.js route handler with providers
+   - Key features:
+     - Credentials provider (email/password)
+     - OAuth providers (Google, GitHub)
+     - JWT session handling
+     - Callback configurations
+   - Reference: NextAuth.js App Router implementation
+
+3. Authentication Service:
+   - Location: `app/services/auth.ts`
+   - Implementation: Service layer for auth operations
+   - Key features:
+     - User registration
+     - Password management
+     - Role assignments
+     - Permission validation
+   - Reference: Factory function pattern with service layer
+
+4. Middleware Protection:
+   - Location: `middleware.ts`
+   - Implementation: Next.js middleware for route protection
+   - Key features:
+     - Authentication checks
+     - Role-based access control
+     - JWT verification
+     - Redirect handling
+   - Reference: Next.js middleware with matcher configuration
+
+5. Session Provider:
+   - Location: `app/providers.tsx`
+   - Implementation: Client-side provider for session state
+   - Key features:
+     - Global session state
+     - Authentication status
+     - User profile access
+     - Role information
+   - Reference: React Context with NextAuth Session Provider
+
+6. Authentication UI Components:
+   - Location: `app/login/page.tsx`, `app/register/page.tsx`, `app/profile/page.tsx`
+   - Implementation: React components for auth interfaces
+   - Key features:
+     - Login form
+     - Registration form
+     - Password reset flow
+     - Profile editor
+   - Reference: React client components with form validation
+
+7. Auth API Routes:
+   - Location: `app/api/auth/*`
+   - Implementation: API endpoints for auth operations integrated with NextAuth
+   - Key features:
+     - User registration
+     - Password management
+     - Profile update
+   - Reference: Next.js API routes with validation
+
+8. Access Control Hook:
+   - Location: `app/hooks/useAuth.ts`
+   - Implementation: Custom React hook for permission checks
+   - Key features:
+     - Permission validation
+     - Role checking
+     - UI conditional rendering
+     - Protected action handling
+   - Reference: Custom React hooks pattern with context consumption
+
+9. Server-side Auth Utilities:
+   - Location: `app/lib/auth.ts`
+   - Implementation: Server-side helper functions
+   - Key features:
+     - Session retrieval
+     - User lookup
+     - Permission verification
+     - Auth error handling
+   - Reference: Server component utilities for authorization
+
+10. Testing Infrastructure:
+    - Location: `app/services/__tests__/auth.test.ts`
+    - Implementation: Test suite for auth functionality
+    - Key features:
+      - Authentication flow tests
+      - Permission validation tests
+      - JWT verification tests
+      - Integration with existing services
+    - Reference: Jest tests with auth mocking patterns
+
+### Completed Items
+#### Phase 6.1: Core Authentication System
+- [x] Database Schema Extension
+  - Location: `prisma/schema.prisma`
+  - Implementation: NextAuth.js compatible User, Account, Session, and VerificationToken models
+  - Key features:
+    - User model with role-based permissions (USER/ADMIN)
+    - OAuth account linking support via the Account model
+    - Session management with JWT strategy
+    - Email verification tokens for account verification
+  - Reference: NextAuth.js Prisma adapter pattern with custom role field
+
+- [x] NextAuth API Route
+  - Location: `app/api/auth/[...nextauth]/route.ts`
+  - Implementation: NextAuth.js route handler with multiple authentication providers
+  - Key features:
+    - Credentials provider with email/password authentication
+    - OAuth providers (Google, GitHub) for social login
+    - JWT session handling with custom user data
+    - Custom callbacks for token and session management
+  - Reference: Next.js App Router API route handler pattern
+
+- [x] Authentication Service
+  - Location: `app/services/auth.ts`
+  - Implementation: Factory function pattern service layer for auth operations
+  - Key features:
+    - User registration with password hashing
+    - Credentials verification for login
+    - Password management utilities (update, verify)
+    - Permission validation based on roles
+  - Reference: Functional factory pattern with service layer composition
+
+- [x] Middleware Protection
+  - Location: `middleware.ts`
+  - Implementation: Next.js middleware for route protection based on auth status
+  - Key features:
+    - Authentication checks for protected routes
+    - Role-based access control for admin routes
+    - JWT verification with next-auth/jwt
+    - Redirect handling with callback URLs
+  - Reference: Next.js middleware with route matcher configuration
+
+- [x] Session Provider
+  - Location: `app/providers.tsx`
+  - Implementation: React context provider for global auth state
+  - Key features:
+    - Global session state management
+    - Authentication status access throughout the app
+    - Client-side session data availability
+  - Reference: React context pattern with Next-Auth SessionProvider
+
+- [x] Authentication UI Components
+  - Location: 
+    - `app/login/page.tsx`
+    - `app/register/page.tsx`
+    - `app/profile/page.tsx`
+  - Implementation: Client-side React components for auth interfaces
+  - Key features:
+    - Login form with email/password and social login options
+    - Registration form with validation
+    - Profile management with password update functionality
+    - Responsive UI with proper error handling
+  - Reference: React client components with form handling patterns
+
+- [x] Auth API Routes
+  - Implementation: Authentication endpoints integrated with NextAuth
+  - Key features:
+    - User registration endpoint
+    - Authentication flow with multiple providers
+    - Password management endpoints
+    - Profile update functionality
+  - Reference: Next.js API routes with proper error handling
+
+- [x] Access Control Hook
+  - Location: `app/hooks/useAuth.ts`
+  - Implementation: Custom React hook for client-side authentication
+  - Key features:
+    - Permission validation based on roles
+    - Login and logout functionality
+    - Session state access
+    - Client-side authorization checks
+  - Reference: React hooks pattern with Next-Auth session integration
+
+- [x] Server-side Auth Utilities
+  - Location: `app/lib/auth.ts`
+  - Implementation: Helper functions for server-side authentication
+  - Key features:
+    - Session retrieval in server components
+    - Route protection with redirection
+    - Role-based authorization checks
+    - Typed session and user interfaces
+  - Reference: Next.js server component utilities with typed returns
+
+- [x] Type Extensions
+  - Location: `app/types/next-auth.d.ts`
+  - Implementation: TypeScript declaration merging for auth types
+  - Key features:
+    - Extended Session type with user ID and role
+    - Extended JWT type with custom claims
+    - Proper typing for auth-related components
+  - Reference: TypeScript declaration merging pattern
+
+- [ ] Testing Infrastructure
+
+**Technical Details Added:**
+- Dependencies:
+  - `next-auth`: Authentication framework for Next.js
+  - `@auth/prisma-adapter`: Prisma adapter for NextAuth
+  - `bcrypt`: Password hashing library (already existed)
+  - `jsonwebtoken`: JWT handling (already existed)
+
+- Integration Points:
+  - Authentication with database via Prisma
+  - JWT-based session management
+  - Client components via React hooks
+  - Server components via auth utilities
+  - Route protection via middleware
+
+### Phase 6.2: Advanced Security Features
+**Context**: Enhanced security features for protecting user data and system access
+- Implementation Priority: Medium
+- Dependencies: Phase 6.1
+- Technical Requirements:
+  - Two-factor authentication
+  - OAuth provider integration
+  - Session management
+  - Account recovery
+  - Security audit logging
+
+**Implementation Tasks**:
+1. Implement enhanced security features:
+   - Two-factor authentication with TOTP
+   - Social login integration (Google, GitHub)
+   - Session timeouts and management
+   - Account recovery via email
+   - IP-based access controls
+
+2. Create security management interfaces:
+   - Security settings page
+   - Activity log viewer
+   - Connected devices management
+   - Permission management interface
+   - Security notification settings
+
+3. Implement audit logging:
+   - User activity tracking
+   - Security event logging
+   - Admin audit trail
+   - Export capabilities
+   - Retention policies
+
+**Success Criteria**:
+- Two-factor authentication works reliably
+- Social login options function as expected
+- Session management prevents unauthorized access
+- Account recovery processes are secure and reliable
+- Audit logging captures all security-relevant events
+
+**Implementation Plan**:
+
+1. Two-Factor Authentication:
+   - Location: `app/services/twoFactor.ts`
+   - Implementation: TOTP-based two-factor authentication
+   - Key features:
+     - Secret generation and storage
+     - QR code generation for setup
+     - Time-based OTP validation
+     - Backup recovery codes
+   - Reference: RFC 6238 TOTP implementation
+
+2. Social Login Integration:
+   - Location: `app/api/auth/[...nextauth]/route.ts`
+   - Implementation: Enhanced OAuth provider configuration
+   - Key features:
+     - Google OAuth integration
+     - GitHub OAuth integration
+     - Account linking with existing accounts
+     - Profile data synchronization
+   - Reference: NextAuth.js OAuth provider implementations
+
+3. Security Audit System:
+   - Location: `app/services/auditLog.ts`
+   - Implementation: Comprehensive audit logging service
+   - Key features:
+     - Event capture and storage
+     - User action tracking
+     - Security event monitoring
+     - IP address and device tracking
+   - Reference: Event-driven audit system with categorization
+
+4. Session Management:
+   - Location: `app/services/session.ts`
+   - Implementation: Enhanced session management
+   - Key features:
+     - Active session listing
+     - Force session termination
+     - Session timeout configuration
+     - Suspicious activity detection
+   - Reference: JWT token management with revocation
+
+5. Account Recovery:
+   - Location: `app/services/recovery.ts`
+   - Implementation: Secure account recovery process
+   - Key features:
+     - Time-limited recovery tokens
+     - Email verification process
+     - Gradual information disclosure
+     - Multi-step verification
+   - Reference: Security-focused recovery workflow
+
+6. Security UI Components:
+   - Location: `app/components/security/*`
+   - Implementation: User interfaces for security features
+   - Key features:
+     - Two-factor setup wizard
+     - Security activity dashboard
+     - Session management interface
+     - Connected apps management
+   - Reference: Step-by-step security configuration interfaces
+
+7. Admin Security Controls:
+   - Location: `app/components/admin/security/*`
+   - Implementation: Admin interfaces for security management
+   - Key features:
+     - User security policy management
+     - Audit log review dashboard
+     - Bulk security actions
+     - Security metrics visualization
+   - Reference: Admin dashboard components with filtering
+
+8. Notification System:
+   - Location: `app/services/notification.ts`
+   - Implementation: Security notification service
+   - Key features:
+     - Login alerts
+     - Suspicious activity warnings
+     - Security setting changes notifications
+     - Critical actions verification
+   - Reference: Multi-channel notification service
+
+9. IP-Based Security:
+   - Location: `app/lib/security.ts`
+   - Implementation: IP address monitoring and controls
+   - Key features:
+     - Unusual location detection
+     - Rate limiting
+     - Brute force protection
+     - Trusted devices management
+   - Reference: IP-based security monitoring system
+
+10. Security Documentation:
+    - Location: `docs/SECURITY.md`
+    - Implementation: Comprehensive security documentation
+    - Key features:
+      - Security model explanation
+      - Configuration guides
+      - Best practices
+      - Troubleshooting information
+    - Reference: Documentation with examples and diagrams
+
 ## Technical Standards
 
 ### API Response Format
@@ -726,10 +1227,22 @@ interface AppError {
 ```
 
 ### Authentication
-- JWT-based authentication
-- Tokens expire after 24 hours
-- Refresh token rotation
-- Role-based access control (RBAC)
+- NextAuth.js-based authentication system
+- JWT strategy with secure HTTP-only cookies
+- Session expiration after 24 hours (configurable)
+- Refresh token rotation for extended sessions
+- Role-based access control (RBAC) with permissions
+- Support for multiple authentication providers:
+  - Email/password (credentials)
+  - OAuth (Google, GitHub)
+  - Magic links (optional)
+- Two-factor authentication (Phase 6.2)
+- Email verification for new accounts
+- Secure password reset flow
+- Session management (active sessions, forced logout)
+- Route protection via middleware
+- API route protection
+- Server-side and client-side authentication checks
 
 ## Development Guidelines
 
@@ -737,13 +1250,31 @@ interface AppError {
 ```
 app/
 ├── api/           # API routes (Next.js App Router)
+│   ├── auth/      # Authentication API routes
+│   └── ...        # Other API routes
 ├── services/      # Business logic
+│   ├── auth.ts    # Authentication service
+│   ├── twoFactor.ts # Two-factor authentication service
+│   └── ...        # Other services
 ├── models/        # Data models
 ├── utils/         # Shared utilities
 ├── types/         # TypeScript types
 ├── components/    # React components
+│   ├── auth/      # Authentication components
+│   ├── security/  # Security management components
+│   └── ...        # Other components
 ├── lib/          # Shared libraries and configurations
+│   ├── auth.ts   # Authentication utilities
+│   └── ...       # Other utilities
+├── hooks/        # Custom React hooks
+│   ├── useAuth.ts # Authentication hook
+│   └── ...       # Other hooks
+├── middleware.ts # Route protection middleware
 └── (routes)/     # Page routes and layouts
+    ├── login/    # Authentication pages
+    ├── register/ # User registration
+    ├── profile/  # User profile management
+    └── ...       # Other routes
 
 prisma/           # Database schema and migrations
 public/          # Static assets

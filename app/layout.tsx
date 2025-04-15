@@ -1,5 +1,6 @@
 import './globals.css';
 import { Navigation } from './components/layout/Navigation';
+import { Providers } from './providers';
 
 export const metadata = {
   title: 'Binventory',
@@ -14,10 +15,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white min-h-screen">
-        <Navigation />
-        <main className="bg-white">
-          {children}
-        </main>
+        <Providers>
+          <Navigation />
+          <main className="bg-white">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );
