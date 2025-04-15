@@ -423,485 +423,490 @@ export const PrintButton: FC<PrintButtonProps> = ({
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col my-4">
             <div className="p-4 border-b border-gray-200">
               <h2 className="text-lg font-medium">Customize Bin Cards</h2>
             </div>
             
-            <div className="p-4">
-              {/* Preview */}
-              <div className="border rounded p-4 flex flex-col items-center justify-center bg-gray-50 mb-6">
-                <div className="text-xs text-gray-500 mb-2">
-                  Preview ({cardConfig.sizes.cardWidth}″ × {cardConfig.sizes.cardHeight}″)
-                </div>
-                <div className="relative">
-                  <div 
-                    style={{
-                      width: `${cardConfig.sizes.cardWidth * 50}px`, 
-                      height: `${cardConfig.sizes.cardHeight * 50}px`,
-                      overflow: 'hidden',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      backgroundColor: 'white',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: cardConfig.styles.squareCorners ? '0' : '8px',
-                    }}
-                  >
+            <div className="p-4 flex-1 overflow-y-auto">
+              <div className="pb-16">
+                {/* Preview */}
+                <div className="border rounded p-4 flex flex-col items-center justify-center bg-gray-50 mb-6">
+                  <div className="text-xs text-gray-500 mb-2">
+                    Preview ({cardConfig.sizes.cardWidth}″ × {cardConfig.sizes.cardHeight}″)
+                  </div>
+                  <div className="relative">
                     <div 
                       style={{
-                        backgroundColor: cardConfig.colors.header,
-                        color: cardConfig.colors.headerText,
-                        padding: '4px 8px',
+                        width: `${cardConfig.sizes.cardWidth * 50}px`, 
+                        height: `${cardConfig.sizes.cardHeight * 50}px`,
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        backgroundColor: 'white',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: cardConfig.styles.squareCorners ? '0' : '8px',
                       }}
                     >
-                      <div style={{
-                        margin: 0,
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {label}
-                      </div>
-                    </div>
-                    
-                    <div style={{
-                      display: 'flex',
-                      flex: 1,
-                      padding: '6px',
-                    }}>
-                      <div style={{
-                        flex: 1,
-                        paddingRight: '6px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        fontSize: '6px',
-                      }}>
-                        <div style={{marginBottom: '4px', fontWeight: 500, color: '#4b5563'}}>
-                          {location}
-                        </div>
-                        {description && cardConfig.styles.showDescription && (
-                          <div style={{
-                            color: '#6b7280',
-                            marginBottom: '4px',
-                            fontSize: '6px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical',
-                          }}>
-                            {description}
-                          </div>
-                        )}
+                      <div 
+                        style={{
+                          backgroundColor: cardConfig.colors.header,
+                          color: cardConfig.colors.headerText,
+                          padding: '4px 8px',
+                        }}
+                      >
                         <div style={{
-                          marginTop: 'auto',
+                          margin: 0,
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}>
+                          {label}
+                        </div>
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        flex: 1,
+                        padding: '6px',
+                      }}>
+                        <div style={{
+                          flex: 1,
+                          paddingRight: '6px',
+                          display: 'flex',
+                          flexDirection: 'column',
                           fontSize: '6px',
-                          fontFamily: 'monospace',
+                        }}>
+                          <div style={{marginBottom: '4px', fontWeight: 500, color: '#4b5563'}}>
+                            {location}
+                          </div>
+                          {description && cardConfig.styles.showDescription && (
+                            <div style={{
+                              color: '#6b7280',
+                              marginBottom: '4px',
+                              fontSize: '6px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
+                              {description}
+                            </div>
+                          )}
+                          <div style={{
+                            marginTop: 'auto',
+                            fontSize: '6px',
+                            fontFamily: 'monospace',
+                            color: '#6b7280',
+                          }}>
+                            ID: {id}
+                          </div>
+                        </div>
+                        
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <div style={{
+                            width: `${cardConfig.sizes.qrCode * (50 / 96)}px`,
+                            height: `${cardConfig.sizes.qrCode * (50 / 96)}px`,
+                            border: `1px solid ${cardConfig.colors.qrBorder}`,
+                            padding: '2px',
+                            backgroundColor: 'white',
+                          }}>
+                            <img 
+                              src={qrCodeUrl}
+                              alt="QR code preview"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                              }}
+                            />
+                          </div>
+                          <div style={{
+                            marginTop: '2px',
+                            fontSize: '5px',
+                            textAlign: 'center',
+                            color: cardConfig.colors.qrText,
+                            fontWeight: 500,
+                          }}>
+                            Scan to view
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {cardConfig.styles.showFooter && (
+                        <div style={{
+                          borderTop: '1px solid #e5e7eb',
+                          backgroundColor: '#f9fafb',
+                          padding: '3px 8px',
+                          textAlign: 'center',
+                          fontSize: '6px',
                           color: '#6b7280',
                         }}>
-                          ID: {id}
+                          Binventory System
                         </div>
-                      </div>
-                      
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <div style={{
-                          width: `${cardConfig.sizes.qrCode * (50 / 96)}px`,
-                          height: `${cardConfig.sizes.qrCode * (50 / 96)}px`,
-                          border: `1px solid ${cardConfig.colors.qrBorder}`,
-                          padding: '2px',
-                          backgroundColor: 'white',
-                        }}>
-                          <img 
-                            src={qrCodeUrl}
-                            alt="QR code preview"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain'
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    QR Size: {cardConfig.sizes.qrCode}px
+                  </div>
+                </div>
+                
+                {/* Multi-Bin Selection */}
+                {allBins && allBins.length > 1 && (
+                  <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+                    <h3 className="text-sm font-medium mb-2">Select Bins to Print</h3>
+                    <p className="text-xs text-gray-500 mb-3">Print multiple bin labels on a single page</p>
+                    
+                    <div className="max-h-40 overflow-y-auto mb-4 border rounded bg-white p-2">
+                      {allBins.map(bin => (
+                        <div key={bin.id} className="flex items-center mb-2">
+                          <input 
+                            type="checkbox"
+                            id={`bin-${bin.id}`}
+                            checked={selectedBins.includes(bin.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedBins([...selectedBins, bin.id]);
+                              } else {
+                                setSelectedBins(selectedBins.filter(id => id !== bin.id));
+                              }
                             }}
+                            className="w-4 h-4 text-blue-600 rounded"
                           />
+                          <label htmlFor={`bin-${bin.id}`} className="ml-2 text-sm">
+                            {bin.label} <span className="text-xs text-gray-500">({bin.location})</span>
+                          </label>
                         </div>
-                        <div style={{
-                          marginTop: '2px',
-                          fontSize: '5px',
-                          textAlign: 'center',
-                          color: cardConfig.colors.qrText,
-                          fontWeight: 500,
-                        }}>
-                          Scan to view
-                        </div>
-                      </div>
+                      ))}
                     </div>
                     
-                    {cardConfig.styles.showFooter && (
-                      <div style={{
-                        borderTop: '1px solid #e5e7eb',
-                        backgroundColor: '#f9fafb',
-                        padding: '3px 8px',
-                        textAlign: 'center',
-                        fontSize: '6px',
-                        color: '#6b7280',
-                      }}>
-                        Binventory System
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="text-xs text-gray-500 mt-2">
-                  QR Size: {cardConfig.sizes.qrCode}px
-                </div>
-              </div>
-              
-              {/* Multi-Bin Selection */}
-              {allBins && allBins.length > 1 && (
-                <div className="mb-6 border rounded-lg p-4 bg-gray-50">
-                  <h3 className="text-sm font-medium mb-2">Select Bins to Print</h3>
-                  <p className="text-xs text-gray-500 mb-3">Print multiple bin labels on a single page</p>
-                  
-                  <div className="max-h-40 overflow-y-auto mb-4 border rounded bg-white p-2">
-                    {allBins.map(bin => (
-                      <div key={bin.id} className="flex items-center mb-2">
-                        <input 
-                          type="checkbox"
-                          id={`bin-${bin.id}`}
-                          checked={selectedBins.includes(bin.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedBins([...selectedBins, bin.id]);
-                            } else {
-                              setSelectedBins(selectedBins.filter(id => id !== bin.id));
-                            }
-                          }}
-                          className="w-4 h-4 text-blue-600 rounded"
-                        />
-                        <label htmlFor={`bin-${bin.id}`} className="ml-2 text-sm">
-                          {bin.label} <span className="text-xs text-gray-500">({bin.location})</span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium">{selectedBins.length} bins selected</span>
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => setSelectedBins(allBins.map(bin => bin.id))}
-                        className="text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Select All
-                      </button>
-                      <button 
-                        onClick={() => setSelectedBins([id])}
-                        className="text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-sm font-medium mt-4 mb-2">Page Layout</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs mb-1">Columns: {printLayout.cols}</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="3" 
-                        value={printLayout.cols}
-                        onChange={(e) => setPrintLayout({...printLayout, cols: parseInt(e.target.value)})}
-                        className="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs mb-1">Rows per page: {printLayout.rows}</label>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="4" 
-                        value={printLayout.rows}
-                        onChange={(e) => setPrintLayout({...printLayout, rows: parseInt(e.target.value)})}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    This layout will print up to {printLayout.cols * printLayout.rows} labels per page
-                  </p>
-                </div>
-              )}
-              
-              {/* Basic Options */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium">Card Size</h3>
-                    <p className="text-xs text-gray-500">Set the dimensions of your bin card</p>
-                  </div>
-                  
-                  <button
-                    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                    className="text-sm text-blue-600 font-medium hover:text-blue-800"
-                  >
-                    {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-xs mb-1">Width: {cardConfig.sizes.cardWidth}″</label>
-                    <input 
-                      type="range" 
-                      min="2" 
-                      max="6" 
-                      step="0.5" 
-                      value={cardConfig.sizes.cardWidth}
-                      onChange={(e) => updateSizeConfig('cardWidth', parseFloat(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs mb-1">Height: {cardConfig.sizes.cardHeight}″</label>
-                    <input 
-                      type="range" 
-                      min="2" 
-                      max="5" 
-                      step="0.5" 
-                      value={cardConfig.sizes.cardHeight}
-                      onChange={(e) => updateSizeConfig('cardHeight', parseFloat(e.target.value))}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-1 mb-4">
-                  <h3 className="text-sm font-medium">QR Code Size</h3>
-                  <p className="text-xs text-gray-500">Adjust for optimal scanning</p>
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-xs mb-1">Size: {cardConfig.sizes.qrCode}px</label>
-                  <input 
-                    type="range" 
-                    min="80" 
-                    max="150" 
-                    value={cardConfig.sizes.qrCode}
-                    onChange={(e) => updateSizeConfig('qrCode', parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center">
-                    <input 
-                      id="square-corners" 
-                      type="checkbox" 
-                      checked={cardConfig.styles.squareCorners}
-                      onChange={(e) => updateStyleConfig('squareCorners', e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <label htmlFor="square-corners" className="ml-2 text-xs">
-                      Square corners for easier cutting
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <input 
-                      id="show-description" 
-                      type="checkbox" 
-                      checked={cardConfig.styles.showDescription}
-                      onChange={(e) => updateStyleConfig('showDescription', e.target.checked)}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <label htmlFor="show-description" className="ml-2 text-xs">
-                      Show description
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Advanced Options */}
-              {showAdvancedOptions && (
-                <>
-                  {/* Templates Selection */}
-                  <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <h3 className="text-sm font-medium mb-3">Card Templates</h3>
-                    <div className="flex flex-wrap items-end gap-3">
-                      <div className="flex-grow">
-                        <label className="block text-xs mb-1">Load Template</label>
-                        <select 
-                          value={selectedTemplate}
-                          onChange={(e) => loadTemplate(e.target.value)}
-                          className="w-full border rounded px-2 py-1.5 text-sm"
-                        >
-                          <option value="">-- Select Template --</option>
-                          {templates.map(template => (
-                            <option key={template.name} value={template.name}>
-                              {template.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <button 
-                        onClick={resetToDefault}
-                        className="px-2 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-100"
-                      >
-                        Reset to Default
-                      </button>
-                    </div>
-                    
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <label className="block text-xs mb-1">Save Current as Template</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">{selectedBins.length} bins selected</span>
                       <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={templateName}
-                          onChange={(e) => setTemplateName(e.target.value)}
-                          placeholder="Enter template name"
-                          className="flex-grow border rounded px-2 py-1.5 text-sm"
-                        />
                         <button 
-                          onClick={saveTemplate}
-                          disabled={!templateName.trim()}
-                          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => setSelectedBins(allBins.map(bin => bin.id))}
+                          className="text-xs text-blue-600 hover:text-blue-800"
                         >
-                          Save
+                          Select All
+                        </button>
+                        <button 
+                          onClick={() => setSelectedBins([id])}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Reset
                         </button>
                       </div>
                     </div>
                     
-                    {templates.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <label className="block text-xs mb-1">Manage Templates</label>
-                        <div className="max-h-20 overflow-y-auto">
-                          {templates.map(template => (
-                            <div key={template.name} className="flex items-center justify-between py-1 text-sm">
-                              <span>{template.name}</span>
-                              <button 
-                                onClick={() => deleteTemplate(template.name)}
-                                className="text-red-600 hover:text-red-800 text-xs"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                    <h3 className="text-sm font-medium mt-4 mb-2">Page Layout</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs mb-1">Columns: {printLayout.cols}</label>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="3" 
+                          value={printLayout.cols}
+                          onChange={(e) => setPrintLayout({...printLayout, cols: parseInt(e.target.value)})}
+                          className="w-full"
+                        />
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-xs mb-1">Rows per page: {printLayout.rows}</label>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="4" 
+                          value={printLayout.rows}
+                          onChange={(e) => setPrintLayout({...printLayout, rows: parseInt(e.target.value)})}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      This layout will print up to {printLayout.cols * printLayout.rows} labels per page
+                    </p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Colors */}
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Colors</h3>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs mb-1">Header Background</label>
-                          <div className="flex items-center space-x-2">
-                            <input 
-                              type="color" 
-                              value={cardConfig.colors.header}
-                              onChange={(e) => updateColorConfig('header', e.target.value)}
-                              className="w-8 h-8 rounded"
-                            />
-                            <input 
-                              type="text" 
-                              value={cardConfig.colors.header}
-                              onChange={(e) => updateColorConfig('header', e.target.value)}
-                              className="border rounded px-2 py-1 text-xs w-24"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs mb-1">Header Text</label>
-                          <div className="flex items-center space-x-2">
-                            <input 
-                              type="color" 
-                              value={cardConfig.colors.headerText}
-                              onChange={(e) => updateColorConfig('headerText', e.target.value)}
-                              className="w-8 h-8 rounded"
-                            />
-                            <input 
-                              type="text" 
-                              value={cardConfig.colors.headerText}
-                              onChange={(e) => updateColorConfig('headerText', e.target.value)}
-                              className="border rounded px-2 py-1 text-xs w-24"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs mb-1">QR Border</label>
-                          <div className="flex items-center space-x-2">
-                            <input 
-                              type="color" 
-                              value={cardConfig.colors.qrBorder}
-                              onChange={(e) => updateColorConfig('qrBorder', e.target.value)}
-                              className="w-8 h-8 rounded"
-                            />
-                            <input 
-                              type="text" 
-                              value={cardConfig.colors.qrBorder}
-                              onChange={(e) => updateColorConfig('qrBorder', e.target.value)}
-                              className="border rounded px-2 py-1 text-xs w-24"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs mb-1">QR Text</label>
-                          <div className="flex items-center space-x-2">
-                            <input 
-                              type="color" 
-                              value={cardConfig.colors.qrText}
-                              onChange={(e) => updateColorConfig('qrText', e.target.value)}
-                              className="w-8 h-8 rounded"
-                            />
-                            <input 
-                              type="text" 
-                              value={cardConfig.colors.qrText}
-                              onChange={(e) => updateColorConfig('qrText', e.target.value)}
-                              className="border rounded px-2 py-1 text-xs w-24"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                )}
+                
+                {/* Basic Options */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium">Card Size</h3>
+                      <p className="text-xs text-gray-500">Set the dimensions of your bin card</p>
                     </div>
                     
-                    {/* Additional Style Options */}
+                    <button
+                      onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                      className="text-sm text-blue-600 font-medium hover:text-blue-800"
+                    >
+                      {showAdvancedOptions ? 'Hide Advanced Options' : 'Show Advanced Options'}
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <h3 className="text-sm font-medium mb-2">Additional Options</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center">
+                      <label className="block text-xs mb-1">Width: {cardConfig.sizes.cardWidth}″</label>
+                      <input 
+                        type="range" 
+                        min="2" 
+                        max="6" 
+                        step="0.5" 
+                        value={cardConfig.sizes.cardWidth}
+                        onChange={(e) => updateSizeConfig('cardWidth', parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs mb-1">Height: {cardConfig.sizes.cardHeight}″</label>
+                      <input 
+                        type="range" 
+                        min="2" 
+                        max="5" 
+                        step="0.5" 
+                        value={cardConfig.sizes.cardHeight}
+                        onChange={(e) => updateSizeConfig('cardHeight', parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1 mb-4">
+                    <h3 className="text-sm font-medium">QR Code Size</h3>
+                    <p className="text-xs text-gray-500">Adjust for optimal scanning</p>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block text-xs mb-1">Size: {cardConfig.sizes.qrCode}px</label>
+                    <input 
+                      type="range" 
+                      min="80" 
+                      max="150" 
+                      value={cardConfig.sizes.qrCode}
+                      onChange={(e) => updateSizeConfig('qrCode', parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center">
+                      <input 
+                        id="square-corners" 
+                        type="checkbox" 
+                        checked={cardConfig.styles.squareCorners}
+                        onChange={(e) => updateStyleConfig('squareCorners', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <label htmlFor="square-corners" className="ml-2 text-xs">
+                        Square corners for easier cutting
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <input 
+                        id="show-description" 
+                        type="checkbox" 
+                        checked={cardConfig.styles.showDescription}
+                        onChange={(e) => updateStyleConfig('showDescription', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded"
+                      />
+                      <label htmlFor="show-description" className="ml-2 text-xs">
+                        Show description
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Advanced Options */}
+                {showAdvancedOptions && (
+                  <>
+                    {/* Templates Selection */}
+                    <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <h3 className="text-sm font-medium mb-3">Card Templates</h3>
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="flex-grow">
+                          <label className="block text-xs mb-1">Load Template</label>
+                          <select 
+                            value={selectedTemplate}
+                            onChange={(e) => loadTemplate(e.target.value)}
+                            className="w-full border rounded px-2 py-1.5 text-sm"
+                          >
+                            <option value="">-- Select Template --</option>
+                            {templates.map(template => (
+                              <option key={template.name} value={template.name}>
+                                {template.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <button 
+                          onClick={resetToDefault}
+                          className="px-2 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                        >
+                          Reset to Default
+                        </button>
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <label className="block text-xs mb-1">Save Current as Template</label>
+                        <div className="flex gap-2">
                           <input 
-                            id="show-footer" 
-                            type="checkbox" 
-                            checked={cardConfig.styles.showFooter}
-                            onChange={(e) => updateStyleConfig('showFooter', e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded"
+                            type="text"
+                            value={templateName}
+                            onChange={(e) => setTemplateName(e.target.value)}
+                            placeholder="Enter template name"
+                            className="flex-grow border rounded px-2 py-1.5 text-sm"
                           />
-                          <label htmlFor="show-footer" className="ml-2 text-xs">
-                            Show footer
-                          </label>
+                          <button 
+                            onClick={saveTemplate}
+                            disabled={!templateName.trim()}
+                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {templates.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <label className="block text-xs mb-1">Manage Templates</label>
+                          <div className="max-h-20 overflow-y-auto">
+                            {templates.map(template => (
+                              <div key={template.name} className="flex items-center justify-between py-1 text-sm">
+                                <span>{template.name}</span>
+                                <button 
+                                  onClick={() => deleteTemplate(template.name)}
+                                  className="text-red-600 hover:text-red-800 text-xs"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      {/* Colors */}
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Colors</h3>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs mb-1">Header Background</label>
+                            <div className="flex items-center space-x-2">
+                              <input 
+                                type="color" 
+                                value={cardConfig.colors.header}
+                                onChange={(e) => updateColorConfig('header', e.target.value)}
+                                className="w-8 h-8 rounded"
+                              />
+                              <input 
+                                type="text" 
+                                value={cardConfig.colors.header}
+                                onChange={(e) => updateColorConfig('header', e.target.value)}
+                                className="border rounded px-2 py-1 text-xs w-24"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs mb-1">Header Text</label>
+                            <div className="flex items-center space-x-2">
+                              <input 
+                                type="color" 
+                                value={cardConfig.colors.headerText}
+                                onChange={(e) => updateColorConfig('headerText', e.target.value)}
+                                className="w-8 h-8 rounded"
+                              />
+                              <input 
+                                type="text" 
+                                value={cardConfig.colors.headerText}
+                                onChange={(e) => updateColorConfig('headerText', e.target.value)}
+                                className="border rounded px-2 py-1 text-xs w-24"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs mb-1">QR Border</label>
+                            <div className="flex items-center space-x-2">
+                              <input 
+                                type="color" 
+                                value={cardConfig.colors.qrBorder}
+                                onChange={(e) => updateColorConfig('qrBorder', e.target.value)}
+                                className="w-8 h-8 rounded"
+                              />
+                              <input 
+                                type="text" 
+                                value={cardConfig.colors.qrBorder}
+                                onChange={(e) => updateColorConfig('qrBorder', e.target.value)}
+                                className="border rounded px-2 py-1 text-xs w-24"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs mb-1">QR Text</label>
+                            <div className="flex items-center space-x-2">
+                              <input 
+                                type="color" 
+                                value={cardConfig.colors.qrText}
+                                onChange={(e) => updateColorConfig('qrText', e.target.value)}
+                                className="w-8 h-8 rounded"
+                              />
+                              <input 
+                                type="text" 
+                                value={cardConfig.colors.qrText}
+                                onChange={(e) => updateColorConfig('qrText', e.target.value)}
+                                className="border rounded px-2 py-1 text-xs w-24"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Additional Style Options */}
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Additional Options</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center">
+                            <input 
+                              id="show-footer" 
+                              type="checkbox" 
+                              checked={cardConfig.styles.showFooter}
+                              onChange={(e) => updateStyleConfig('showFooter', e.target.checked)}
+                              className="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <label htmlFor="show-footer" className="ml-2 text-xs">
+                              Show footer
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
+              
+              {/* Fade out gradient using fixed positioning at bottom of scrollable area */}
+              <div className="sticky bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none mt-[-4rem]"></div>
             </div>
             
-            <div className="flex items-center justify-end p-4 border-t border-gray-200 space-x-3">
+            <div className="flex items-center justify-end p-4 border-t border-gray-200 space-x-3 bg-white">
               <button
                 onClick={closeModal}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
