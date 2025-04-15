@@ -409,6 +409,49 @@ interface TypeaheadConfig {
      - Consistent spacing
    - Reference: Responsive design system with breakpoint consistency
 
+5. Printable Bin Cards:
+   - Location: `app/components/bins/PrintButton.tsx`
+   - Implementation: Client-side React component with direct print functionality
+   - Key features:
+     - Print-optimized styling for physical labels
+     - Single-button printing without extra steps
+     - Correctly sized for physical attachment to bins (4in × 3in)
+     - QR code integration for scanning
+     - Key information display (label, location, ID)
+   - Reference: Client component pattern with browser print API
+
+6. Enhanced Print Functionality:
+   - Location: `app/components/bins/PrintButton.tsx`
+   - Implementation: Improved card printing with proper page layout and color preservation
+   - Key features:
+     - Small card size maintained on standard letter paper
+     - Color preservation in printed output
+     - Centered placement on page
+     - Print-specific media queries
+     - Automatic printing workflow
+     - Square borders for easy cutting
+     - Enlarged QR code with primary blue color theme
+   - Reference: CSS print media optimization with color adjustments
+
+7. Customizable Print Functionality:
+   - Location: `app/components/bins/PrintButton.tsx`
+   - Implementation: User-configurable bin card printing with live preview
+   - Key features:
+     - Interactive modal with real-time preview
+     - Color customization for header and QR code elements
+     - Size adjustments for card dimensions and QR code
+     - Style toggles for corners, description, and footer
+     - Responsive design for all screen sizes
+     - User preference persistence during the session
+     - Template saving and management
+     - LocalStorage persistence of saved templates
+     - QR code preview in configuration interface
+     - Proportionally accurate preview of printed output
+     - Size indicators for better user understanding
+     - Basic/Advanced mode toggle for user-appropriate complexity
+     - Simplified interface for casual users
+   - Reference: React hooks with dynamic styling and configuration management
+
 **Detailed Specifications**:
 
 1. Design System:
