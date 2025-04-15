@@ -433,7 +433,32 @@ interface TypeaheadConfig {
      - Enlarged QR code with primary blue color theme
    - Reference: CSS print media optimization with color adjustments
 
-7. Customizable Print Functionality:
+7. Multi-Bin Printing Functionality:
+   - Location: `app/components/bins/PrintButton.tsx`
+   - Implementation: Grid-based multi-bin card printing with page optimization
+   - Key features:
+     - Multiple bin labels on a single page
+     - Configurable grid layout (columns and rows)
+     - Bin selection interface
+     - Efficient paper usage
+     - Page-break control for proper printing
+     - Preview counts of labels per page
+     - Maintains all customization options from single printing
+   - Reference: CSS Grid Layout with print media optimization
+
+8. Batch Print System:
+   - Location: `app/components/bins/BatchPrintButton.tsx`
+   - Implementation: Unified batch printing interface with direct integration
+   - Key features:
+     - Dashboard quick action for easy access
+     - Bins page integration
+     - Visual bin selection interface
+     - Bins listing with details
+     - Direct component integration without URL parameters
+     - Seamless integration with print customization
+   - Reference: React client components with direct state management
+
+9. Customizable Print Functionality:
    - Location: `app/components/bins/PrintButton.tsx`
    - Implementation: User-configurable bin card printing with live preview
    - Key features:

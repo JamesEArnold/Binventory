@@ -14,6 +14,15 @@ export interface PrintButtonProps {
   location: string;
   description?: string;
   qrCodeUrl: string;
+  allBins?: {
+    id: string;
+    label: string;
+    location: string;
+    description?: string;
+    qrCodeUrl: string;
+  }[];
+  openModalDirectly?: boolean;
+  onClose?: () => void;
 }
 
 interface CardConfig {
@@ -66,13 +75,18 @@ export const PrintButton: FC<PrintButtonProps> = ({
   location,
   description,
   qrCodeUrl,
+  allBins,
+  openModalDirectly = false,
+  onClose,
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(openModalDirectly);
   const [cardConfig, setCardConfig] = useState<CardConfig>({...defaultConfig});
   const [templateName, setTemplateName] = useState<string>('');
   const [templates, setTemplates] = useState<CardTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState<boolean>(false);
+  const [selectedBins, setSelectedBins] = useState<string[]>([id]);
+  const [printLayout, setPrintLayout] = useState<{cols: number, rows: number}>({cols: 2, rows: 2});
   
   // Load templates from localStorage on component mount
   useEffect(() => {
@@ -90,12 +104,51 @@ export const PrintButton: FC<PrintButtonProps> = ({
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     
+    const bins = allBins ? allBins.filter(bin => selectedBins.includes(bin.id)) : [{ id, label, location, description, qrCodeUrl }];
+    
+    // Create the grid layout for multiple bin cards
+    const gridTemplateColumns = `repeat(${printLayout.cols}, 1fr)`;
+    const gridGap = '0.25in';
+    
+    let binCardsHtml = '';
+    bins.forEach(bin => {
+      binCardsHtml += `
+        <div class="card-container">
+          <div class="card">
+            <div class="card-header">
+              <h2>${bin.label}</h2>
+            </div>
+            <div class="card-content">
+              <div class="card-details">
+                <div class="location">
+                  <svg class="location-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span>${bin.location}</span>
+                </div>
+                ${bin.description && cardConfig.styles.showDescription ? `<div class="description">${bin.description}</div>` : ''}
+                <div class="id">ID: ${bin.id}</div>
+              </div>
+              <div class="card-qr">
+                <img class="qr-code" src="${bin.qrCodeUrl}" alt="QR code for ${bin.label}">
+                <span class="qr-text">Scan to view</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span>Binventory System</span>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
     // Create the card content to be printed
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Bin Card - ${label}</title>
+        <title>Bin Cards</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
@@ -108,10 +161,6 @@ export const PrintButton: FC<PrintButtonProps> = ({
             padding: 0;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #333;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             background-color: #f9fafb;
           }
           * {
@@ -119,13 +168,19 @@ export const PrintButton: FC<PrintButtonProps> = ({
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          .print-grid {
+            display: grid;
+            grid-template-columns: ${gridTemplateColumns};
+            grid-gap: ${gridGap};
+            padding: 0;
+          }
           .card-container {
             width: ${cardConfig.sizes.cardWidth}in;
             height: ${cardConfig.sizes.cardHeight}in;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             margin: 0 auto;
             background-color: white;
+            page-break-inside: avoid;
           }
           .card {
             display: flex;
@@ -220,7 +275,9 @@ export const PrintButton: FC<PrintButtonProps> = ({
           @media print {
             body {
               background-color: transparent;
-              min-height: auto;
+            }
+            .print-grid {
+              width: 100%;
             }
             .card-container {
               box-shadow: none;
@@ -230,32 +287,8 @@ export const PrintButton: FC<PrintButtonProps> = ({
         </style>
       </head>
       <body>
-        <div class="card-container">
-          <div class="card">
-            <div class="card-header">
-              <h2>${label}</h2>
-            </div>
-            <div class="card-content">
-              <div class="card-details">
-                <div class="location">
-                  <svg class="location-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                    <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
-                  <span>${location}</span>
-                </div>
-                ${description && cardConfig.styles.showDescription ? `<div class="description">${description}</div>` : ''}
-                <div class="id">ID: ${id}</div>
-              </div>
-              <div class="card-qr">
-                <img class="qr-code" src="${qrCodeUrl}" alt="QR code for ${label}">
-                <span class="qr-text">Scan to view</span>
-              </div>
-            </div>
-            <div class="card-footer">
-              <span>Binventory System</span>
-            </div>
-          </div>
+        <div class="print-grid">
+          ${binCardsHtml}
         </div>
         <script>
           window.onload = function() {
@@ -277,7 +310,10 @@ export const PrintButton: FC<PrintButtonProps> = ({
   };
 
   const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    if (onClose) onClose();
+  };
   
   const handleCustomizePrint = () => {
     handlePrint();
@@ -359,33 +395,35 @@ export const PrintButton: FC<PrintButtonProps> = ({
 
   return (
     <>
-      <button
-        onClick={openModal}
-        className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
-        aria-label="Print bin label"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="mr-2 h-4 w-4 text-gray-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+      {!openModalDirectly && (
+        <button
+          onClick={openModal}
+          className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+          aria-label="Print bin label"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
-          />
-        </svg>
-        Print Label
-      </button>
-      
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="mr-2 h-4 w-4 text-gray-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+            />
+          </svg>
+          Print Label
+        </button>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 bg-opacity-50">
           <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
             <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium">Customize Bin Card</h2>
+              <h2 className="text-lg font-medium">Customize Bin Cards</h2>
             </div>
             
             <div className="p-4">
@@ -519,6 +557,84 @@ export const PrintButton: FC<PrintButtonProps> = ({
                   QR Size: {cardConfig.sizes.qrCode}px
                 </div>
               </div>
+              
+              {/* Multi-Bin Selection */}
+              {allBins && allBins.length > 1 && (
+                <div className="mb-6 border rounded-lg p-4 bg-gray-50">
+                  <h3 className="text-sm font-medium mb-2">Select Bins to Print</h3>
+                  <p className="text-xs text-gray-500 mb-3">Print multiple bin labels on a single page</p>
+                  
+                  <div className="max-h-40 overflow-y-auto mb-4 border rounded bg-white p-2">
+                    {allBins.map(bin => (
+                      <div key={bin.id} className="flex items-center mb-2">
+                        <input 
+                          type="checkbox"
+                          id={`bin-${bin.id}`}
+                          checked={selectedBins.includes(bin.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBins([...selectedBins, bin.id]);
+                            } else {
+                              setSelectedBins(selectedBins.filter(id => id !== bin.id));
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600 rounded"
+                        />
+                        <label htmlFor={`bin-${bin.id}`} className="ml-2 text-sm">
+                          {bin.label} <span className="text-xs text-gray-500">({bin.location})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">{selectedBins.length} bins selected</span>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setSelectedBins(allBins.map(bin => bin.id))}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Select All
+                      </button>
+                      <button 
+                        onClick={() => setSelectedBins([id])}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-sm font-medium mt-4 mb-2">Page Layout</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs mb-1">Columns: {printLayout.cols}</label>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="3" 
+                        value={printLayout.cols}
+                        onChange={(e) => setPrintLayout({...printLayout, cols: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs mb-1">Rows per page: {printLayout.rows}</label>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="4" 
+                        value={printLayout.rows}
+                        onChange={(e) => setPrintLayout({...printLayout, rows: parseInt(e.target.value)})}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This layout will print up to {printLayout.cols * printLayout.rows} labels per page
+                  </p>
+                </div>
+              )}
               
               {/* Basic Options */}
               <div className="mb-6">

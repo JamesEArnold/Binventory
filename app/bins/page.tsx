@@ -7,6 +7,7 @@
 import Link from 'next/link';
 import { BinCard } from '../components/bins/BinCard';
 import { prisma } from '../lib/prisma';
+import BatchPrintButton from '../components/bins/BatchPrintButton';
 
 // Fetch bins with their items
 async function getBinsWithItems() {
@@ -29,16 +30,33 @@ async function getBinsWithItems() {
 export default async function BinsPage() {
   const bins = await getBinsWithItems();
   
+  // Prepare bin data for printing
+  const printableBins = bins.map(bin => ({
+    id: bin.id,
+    label: bin.label,
+    location: bin.location,
+    description: bin.description || undefined,
+    qrCodeUrl: `/api/qr/image/${bin.id}`
+  }));
+  
   return (
     <div className="container mx-auto px-4 py-8 bg-white">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Bins</h1>
-        <Link 
-          href="/bins/new" 
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Create New Bin
-        </Link>
+        <div className="flex space-x-3">
+          {/* {printableBins.length > 1 && (
+            <div className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <BatchPrintButton allBins={printableBins} />
+              <span className="text-sm font-medium text-gray-600">Batch Print</span>
+            </div>
+          )} */}
+          <Link 
+            href="/bins/new" 
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Create New Bin
+          </Link>
+        </div>
       </div>
       
       {bins.length === 0 ? (

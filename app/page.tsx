@@ -6,6 +6,7 @@
 
 import Link from 'next/link';
 import { prisma } from './lib/prisma';
+import BatchPrintAction from './components/BatchPrintAction';
 
 async function getDashboardStats() {
   const binCount = await prisma.bin.count();
@@ -17,16 +18,38 @@ async function getDashboardStats() {
     orderBy: { createdAt: 'desc' },
   });
   
+  // Get all bins for batch printing
+  const allBins = await prisma.bin.findMany({
+    select: {
+      id: true,
+      label: true,
+      location: true,
+      description: true
+    },
+    orderBy: {
+      label: 'asc'
+    }
+  });
+  
+  const printableBins = allBins.map(bin => ({
+    id: bin.id,
+    label: bin.label,
+    location: bin.location,
+    description: bin.description || undefined,
+    qrCodeUrl: `/api/qr/image/${bin.id}`
+  }));
+  
   return {
     binCount,
     itemCount,
     categoryCount,
     recentBins,
+    printableBins
   };
 }
 
 export default async function HomePage() {
-  const { binCount, itemCount, categoryCount, recentBins } = await getDashboardStats();
+  const { binCount, itemCount, categoryCount, recentBins, printableBins } = await getDashboardStats();
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">
@@ -80,7 +103,7 @@ export default async function HomePage() {
       {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg shadow border border-gray-200 mb-8">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Link href="/bins/new" className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
             <svg className="h-6 w-6 text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -109,6 +132,8 @@ export default async function HomePage() {
             </svg>
             <span className="text-sm font-medium text-gray-600">Search</span>
           </Link>
+          
+          <BatchPrintAction bins={printableBins} />
         </div>
       </div>
       
