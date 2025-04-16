@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export function useAuth() {
   const { data: session, status } = useSession();
@@ -10,6 +11,17 @@ export function useAuth() {
   const user = session?.user;
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
+
+  /**
+   * Check authentication status and redirect to login if not authenticated
+   * @param redirectIfUnauthenticated Whether to redirect to login if not authenticated
+   */
+  useEffect(() => {
+    if (status === 'unauthenticated' && window.location.pathname !== '/login' && 
+        window.location.pathname !== '/register' && !window.location.pathname.startsWith('/b/')) {
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [status, router]);
 
   /**
    * Login handler with redirect
@@ -40,7 +52,7 @@ export function useAuth() {
   /**
    * Logout handler with redirect
    */
-  const logout = async (callbackUrl: string = '/') => {
+  const logout = async (callbackUrl: string = '/login') => {
     await signOut({ redirect: false });
     router.push(callbackUrl);
   };

@@ -1,6 +1,9 @@
 import './globals.css';
-import { Navigation } from './components/layout/Navigation';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
+import { Navigation } from './components/layout/Navigation';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Binventory',
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-white min-h-screen">
+      <body className={`bg-white min-h-screen ${inter.className}`}>
         <Providers>
           <Navigation />
           <main className="bg-white">

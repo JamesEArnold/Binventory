@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { BinCard } from '../components/bins/BinCard';
 import { prisma } from '../lib/prisma';
 import BatchPrintButton from '../components/bins/BatchPrintButton';
+import { requireAuth } from '../lib/auth';
 
 // Fetch bins with their items
 async function getBinsWithItems() {
@@ -28,6 +29,9 @@ async function getBinsWithItems() {
 }
 
 export default async function BinsPage() {
+  // Ensure user is authenticated
+  await requireAuth();
+  
   const bins = await getBinsWithItems();
   
   // Prepare bin data for printing

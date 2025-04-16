@@ -7,6 +7,7 @@
 import Link from 'next/link';
 import { prisma } from './lib/prisma';
 import BatchPrintAction from './components/BatchPrintAction';
+import { requireAuth } from './lib/auth';
 
 async function getDashboardStats() {
   const binCount = await prisma.bin.count();
@@ -49,6 +50,9 @@ async function getDashboardStats() {
 }
 
 export default async function HomePage() {
+  // Ensure user is authenticated
+  await requireAuth();
+  
   const { binCount, itemCount, categoryCount, recentBins, printableBins } = await getDashboardStats();
   
   return (

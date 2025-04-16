@@ -4,13 +4,18 @@ import { getToken } from 'next-auth/jwt';
 
 // Routes that require authentication
 const protectedRoutes = [
+  '/',
   '/profile',
   '/admin',
+  '/bins',
+  '/items',
+  '/categories',
+  '/scanner',
+  '/search'
 ];
 
 // Routes that are public
 const publicRoutes = [
-  '/',
   '/login',
   '/register',
   '/b', // QR code redirect routes

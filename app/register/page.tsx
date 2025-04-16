@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { registerUser } from '../services/auth';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
@@ -29,13 +28,21 @@ export default function RegisterPage() {
       }
 
       // Call registration API
-      const result = await registerUser({
-        name,
-        email,
-        password,
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
       });
 
-      if (!result.success) {
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
         setError(result.error || 'Registration failed');
         setIsLoading(false);
         return;

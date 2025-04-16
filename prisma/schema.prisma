@@ -104,6 +104,7 @@ model User {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   accounts      Account[]
   sessions      Session[]
+  twoFactorAuth TwoFactorAuth?
 
   @@map("users")
 }
@@ -145,6 +146,38 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// Two-Factor Authentication
+model TwoFactorAuth {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  secret        String
+  verified      Boolean  @default(false)
+  recoveryCodes String[] @map("recovery_codes")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("two_factor_auth")
+}
+
+// Security Audit Log
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?   @map("user_id")
+  action      String
+  entity      String?
+  entityId    String?   @map("entity_id")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 enum Role {

@@ -12,6 +12,7 @@ import { ItemDetail } from '../../components/items/ItemDetail';
 import { Item, BinItem } from '../../types/models';
 import { storageService } from '@/services/storage';
 import { PrintButton } from '../../components/bins/PrintButton';
+import { requireAuth } from '../../lib/auth';
 
 // Define a type that includes the item relation
 interface BinItemWithItem extends BinItem {
@@ -75,6 +76,9 @@ function isUrlExpired(url: string): boolean {
 }
 
 export default async function BinDetailPage({ params }: { params: { id: string } }) {
+  // Ensure user is authenticated
+  await requireAuth();
+  
   const { id } = await params;
   const bin = await getBinWithItems(id);
   
