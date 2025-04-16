@@ -26,6 +26,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Add pointer cursor to buttons */
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+/* Disable pointer cursor for disabled buttons */
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* Scanner animations */
 @keyframes scan-line {
   0% {
