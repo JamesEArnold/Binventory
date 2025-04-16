@@ -8,12 +8,16 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 
 export function Navigation() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const router = useRouter();
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +30,28 @@ export function Navigation() {
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
+
+  const toggleProfileMenu = () => {
+    setIsProfileMenuOpen(!isProfileMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <nav className="bg-white border-b border-gray-200">
@@ -58,6 +84,15 @@ export function Navigation() {
               >
                 Categories
               </Link>
+              
+              {isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="px-3 py-2 rounded-md text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                >
+                  Admin
+                </Link>
+              )}
             </div>
           </div>
           
@@ -140,6 +175,87 @@ export function Navigation() {
                 3
               </span>
             </button>
+            
+            {/* Profile Menu */}
+            {isAuthenticated ? (
+              <div className="ml-3 relative" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  className="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  onClick={toggleProfileMenu}
+                  id="user-menu-button"
+                  aria-expanded={isProfileMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <span className="sr-only">Open user menu</span>
+                  {user?.image ? (
+                    <img
+                      className="h-8 w-8 rounded-full"
+                      src={user.image}
+                      alt={`${user.name || 'User'}'s profile picture`}
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                  )}
+                </button>
+
+                {/* Profile dropdown menu */}
+                {isProfileMenuOpen && (
+                  <div
+                    className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10"
+                    role="menu"
+                    aria-orientation="vertical"
+                    aria-labelledby="user-menu-button"
+                    tabIndex={-1}
+                  >
+                    <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
+                      <p className="font-medium">{user?.name || 'User'}</p>
+                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Your Profile
+                    </Link>
+                    <Link
+                      href="/profile/security"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Security Settings
+                    </Link>
+                    <Link
+                      href="/profile/sessions"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      role="menuitem"
+                      onClick={() => setIsProfileMenuOpen(false)}
+                    >
+                      Active Sessions
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      role="menuitem"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="ml-3 inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Sign in
+              </Link>
+            )}
             
             {/* Mobile Menu Button */}
             <button
@@ -226,6 +342,52 @@ export function Navigation() {
               >
                 Categories
               </Link>
+              
+              {isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="block px-3 py-2 rounded-md text-sm font-medium text-indigo-600 hover:bg-indigo-50"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Admin
+                </Link>
+              )}
+              
+              {isAuthenticated && (
+                <>
+                  <div className="border-t border-gray-200 my-2"></div>
+                  <Link 
+                    href="/profile" 
+                    className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Your Profile
+                  </Link>
+                  <Link 
+                    href="/profile/security" 
+                    className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Security Settings
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-gray-100"
+                  >
+                    Sign out
+                  </button>
+                </>
+              )}
+              
+              {!isAuthenticated && (
+                <Link 
+                  href="/login" 
+                  className="block px-3 py-2 rounded-md text-sm font-medium text-blue-600 hover:bg-blue-50"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign in
+                </Link>
+              )}
             </div>
           </div>
         )}
