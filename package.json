@@ -16,7 +16,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "dev:docker": "npm run docker:up && npm run dev"
+    "dev:docker": "npm run docker:up && npm run dev",
+    "dev:https": "NODE_ENV=development next dev --experimental-https"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
