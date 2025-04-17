@@ -15,19 +15,23 @@ datasource db {
 
 model Bin {
   id          String    @id @default(uuid())
-  label       String    @unique @db.VarChar(100)
+  label       String    @db.VarChar(100)
   location    String    @db.VarChar(200)
   qrCode      String    @map("qr_code")
   description String?   @db.VarChar(500)
   imageUrl    String?   @map("image_url") @db.VarChar(1000)
   imageKey    String?   @map("image_key") @db.VarChar(255)
+  userId      String    @map("user_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   items       BinItem[]
   qrCodes     QrCode[]
+  user        User      @relation(fields: [userId], references: [id])
 
+  @@unique([label, userId])
   @@index([label])
   @@index([location])
+  @@index([userId])
   @@map("bins")
 }
 
@@ -39,13 +43,16 @@ model Item {
   quantity    Int       @default(0)
   minQuantity Int?      @map("min_quantity")
   unit        String
+  userId      String    @map("user_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   category    Category  @relation(fields: [categoryId], references: [id])
   bins        BinItem[]
+  user        User      @relation(fields: [userId], references: [id])
 
   @@index([name])
   @@index([categoryId])
+  @@index([userId])
   @@map("items")
 }
 
@@ -67,12 +74,15 @@ model Category {
   name     String     @db.VarChar(100)
   parentId String?    @map("parent_id")
   path     String[]
+  userId   String     @map("user_id")
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children Category[] @relation("CategoryHierarchy")
   items    Item[]
+  user     User       @relation(fields: [userId], references: [id])
 
   @@index([name])
   @@index([path])
+  @@index([userId])
   @@map("categories")
 }
 
@@ -105,6 +115,9 @@ model User {
   accounts      Account[]
   sessions      Session[]
   twoFactorAuth TwoFactorAuth?
+  bins          Bin[]
+  items         Item[]
+  categories    Category[]
 
   @@map("users")
 }
