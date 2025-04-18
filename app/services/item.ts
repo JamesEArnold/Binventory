@@ -13,10 +13,10 @@ export interface ItemService {
       total: number;
     };
   }>;
-  get(id: string): Promise<Item>;
+  get(id: string, userId: string): Promise<Item>;
   create(data: CreateItemInput): Promise<Item>;
-  update(id: string, data: UpdateItemInput): Promise<Item>;
-  delete(id: string): Promise<Item>;
+  update(id: string, data: UpdateItemInput, userId: string): Promise<Item>;
+  delete(id: string, userId: string): Promise<Item>;
 }
 
 export interface ListItemsOptions {
@@ -24,6 +24,7 @@ export interface ListItemsOptions {
   limit?: number;
   categoryId?: string;
   search?: string;
+  userId?: string;
 }
 
 export interface CreateItemInput {
@@ -103,45 +104,47 @@ export function createItemService(): ItemService {
   return {
     async list(options: ListItemsOptions = {}) {
       try {
-        const page = options.page || 1;
-        const limit = options.limit || 20;
+        const { page = 1, limit = 10, categoryId, search, userId } = options;
         const skip = (page - 1) * limit;
-        
+
         // Build the where clause
         const where: Prisma.ItemWhereInput = {};
         
-        if (options.categoryId) {
-          where.categoryId = options.categoryId;
+        // Add category filter if provided
+        if (categoryId) {
+          where.categoryId = categoryId;
         }
         
-        if (options.search) {
-          where.OR = [
-            { name: { contains: options.search, mode: 'insensitive' } },
-            { description: { contains: options.search, mode: 'insensitive' } }
-          ];
+        // Add user filter if provided for multi-tenant security
+        if (userId) {
+          where.userId = userId;
         }
-        
-        // Get total count
-        const total = await prisma.item.count({ where });
-        
+
+        // Use search service if search parameter is provided
+        if (search && search.trim() !== '') {
+          const searchResults = await searchService.searchItems(search, { limit });
+          const ids = searchResults.hits.map(hit => hit.id);
+          
+          // Combine search results with other filters
+          where.id = { in: ids };
+        }
+
         // Get items with pagination
-        const items = await prisma.item.findMany({
-          where,
-          skip,
-          take: limit,
-          include: {
-            category: true,
-            bins: {
-              include: {
-                bin: true
-              }
-            }
-          },
-          orderBy: {
-            name: 'asc'
-          }
-        });
-        
+        const [items, total] = await Promise.all([
+          prisma.item.findMany({
+            where,
+            include: {
+              category: true,
+            },
+            skip,
+            take: limit,
+            orderBy: {
+              name: 'asc',
+            },
+          }),
+          prisma.item.count({ where }),
+        ]);
+
         return {
           items,
           pagination: {
@@ -160,10 +163,14 @@ export function createItemService(): ItemService {
       }
     },
     
-    async get(id: string) {
+    async get(id: string, userId: string) {
       try {
-        const item = await prisma.item.findUnique({
-          where: { id },
+        // Find the item with userId filter for security
+        const item = await prisma.item.findFirst({
+          where: { 
+            id,
+            userId 
+          },
           include: {
             category: true,
             bins: {
@@ -197,11 +204,14 @@ export function createItemService(): ItemService {
       }
     },
     
-    async create(data: CreateItemInput) {
+    async create(data: CreateItemInput & { userId: string }) {
       try {
         // Check if category exists
-        const category = await prisma.category.findUnique({
-          where: { id: data.category_id }
+        const category = await prisma.category.findFirst({
+          where: { 
+            id: data.category_id,
+            userId: data.userId // Ensure category belongs to the user
+          }
         });
         
         if (!category) {
@@ -220,7 +230,8 @@ export function createItemService(): ItemService {
             category: { connect: { id: data.category_id } },
             quantity: data.quantity,
             minQuantity: data.min_quantity,
-            unit: data.unit
+            unit: data.unit,
+            user: { connect: { id: data.userId } }
           },
           include: {
             category: true
@@ -230,14 +241,14 @@ export function createItemService(): ItemService {
         // Index the item in Meilisearch
         try {
           await searchService.indexItem(item);
-        } catch (error: Error | unknown) {
+        } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           console.error('Failed to index item in search:', errorMessage);
           // Don't fail the request if indexing fails
         }
         
         return item;
-      } catch (error: AppError | Error | unknown) {
+      } catch (error) {
         if (isAppError(error)) {
           throw error;
         }
@@ -251,11 +262,14 @@ export function createItemService(): ItemService {
       }
     },
     
-    async update(id: string, data: UpdateItemInput) {
+    async update(id: string, data: UpdateItemInput, userId: string) {
       try {
-        // Check if item exists
-        const existingItem = await prisma.item.findUnique({
-          where: { id }
+        // Check if item exists and belongs to user
+        const existingItem = await prisma.item.findFirst({
+          where: { 
+            id,
+            userId 
+          }
         });
         
         if (!existingItem) {
@@ -268,8 +282,11 @@ export function createItemService(): ItemService {
         
         // Check if category exists if provided
         if (data.category_id && data.category_id !== '') {
-          const category = await prisma.category.findUnique({
-            where: { id: data.category_id }
+          const category = await prisma.category.findFirst({
+            where: { 
+              id: data.category_id,
+              userId // Ensure category belongs to the user
+            }
           });
           
           if (!category) {
@@ -286,7 +303,7 @@ export function createItemService(): ItemService {
         
         if (data.category_id === '') {
           // Disconnect category
-          const updateData: any = {
+          const updateData: Prisma.ItemUpdateInput = {
             name: data.name !== undefined ? data.name : undefined,
             description: data.description !== undefined ? data.description : undefined,
             quantity: data.quantity !== undefined ? data.quantity : undefined,
@@ -322,7 +339,7 @@ export function createItemService(): ItemService {
           });
         } else {
           // Just update fields without touching category
-          const updateData: any = {
+          const updateData: Prisma.ItemUpdateInput = {
             name: data.name !== undefined ? data.name : undefined,
             description: data.description !== undefined ? data.description : undefined,
             quantity: data.quantity !== undefined ? data.quantity : undefined,
@@ -358,11 +375,14 @@ export function createItemService(): ItemService {
       }
     },
     
-    async delete(id: string) {
+    async delete(id: string, userId: string) {
       try {
-        // Check if item exists
-        const existingItem = await prisma.item.findUnique({
-          where: { id },
+        // Check if item exists and belongs to user
+        const existingItem = await prisma.item.findFirst({
+          where: { 
+            id,
+            userId 
+          },
           include: {
             bins: true
           }

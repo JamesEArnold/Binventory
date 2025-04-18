@@ -1,18 +1,19 @@
 import { prisma } from '../lib/prisma';
-import { Category } from '@prisma/client';
+import { Category, Prisma } from '@prisma/client';
 import { createAppError, isAppError } from '../utils/errors';
 
 export interface CategoryService {
-  list(): Promise<Category[]>;
-  get(id: string): Promise<Category>;
+  list(userId: string): Promise<Category[]>;
+  get(id: string, userId: string): Promise<Category>;
   create(data: CreateCategoryInput): Promise<Category>;
-  update(id: string, data: UpdateCategoryInput): Promise<Category>;
-  delete(id: string): Promise<Category>;
+  update(id: string, data: UpdateCategoryInput, userId: string): Promise<Category>;
+  delete(id: string, userId: string): Promise<Category>;
 }
 
 export interface CreateCategoryInput {
   name: string;
   parent_id?: string;
+  userId: string;
 }
 
 export interface UpdateCategoryInput {
@@ -22,9 +23,12 @@ export interface UpdateCategoryInput {
 
 export function createCategoryService(): CategoryService {
   return {
-    async list() {
+    async list(userId: string) {
       try {
         return await prisma.category.findMany({
+          where: {
+            userId
+          },
           include: {
             parent: true,
             _count: {
@@ -47,10 +51,13 @@ export function createCategoryService(): CategoryService {
       }
     },
 
-    async get(id: string) {
+    async get(id: string, userId: string) {
       try {
-        const category = await prisma.category.findUnique({
-          where: { id },
+        const category = await prisma.category.findFirst({
+          where: { 
+            id,
+            userId 
+          },
           include: {
             parent: true,
             children: true,
@@ -87,12 +94,16 @@ export function createCategoryService(): CategoryService {
 
     async create(data: CreateCategoryInput) {
       try {
-        // Calculate path based on parent
+        let parentId = null;
         let path: string[] = [];
         
+        // If parent category is specified, verify it exists
         if (data.parent_id) {
-          const parent = await prisma.category.findUnique({
-            where: { id: data.parent_id },
+          const parent = await prisma.category.findFirst({
+            where: { 
+              id: data.parent_id,
+              userId: data.userId // Ensure parent belongs to the user
+            },
             select: { path: true }
           });
           
@@ -104,14 +115,21 @@ export function createCategoryService(): CategoryService {
             });
           }
           
+          parentId = data.parent_id;
           path = [...parent.path, data.parent_id];
         }
         
+        // Create the category
         return await prisma.category.create({
           data: {
             name: data.name,
-            parentId: data.parent_id || null,
-            path
+            path,
+            user: {
+              connect: { id: data.userId }
+            },
+            parent: parentId ? {
+              connect: { id: parentId }
+            } : undefined
           },
           include: {
             parent: true
@@ -131,11 +149,14 @@ export function createCategoryService(): CategoryService {
       }
     },
 
-    async update(id: string, data: UpdateCategoryInput) {
+    async update(id: string, data: UpdateCategoryInput, userId: string) {
       try {
-        // First check if the category exists
-        const existingCategory = await prisma.category.findUnique({
-          where: { id }
+        // First check if the category exists and belongs to the user
+        const existingCategory = await prisma.category.findFirst({
+          where: { 
+            id,
+            userId 
+          }
         });
         
         if (!existingCategory) {
@@ -153,9 +174,12 @@ export function createCategoryService(): CategoryService {
           if (data.parent_id === null || data.parent_id === '') {
             path = [];
           } else if (data.parent_id !== existingCategory.parentId) {
-            // Check that the new parent exists
-            const parent = await prisma.category.findUnique({
-              where: { id: data.parent_id },
+            // Check that the new parent exists and belongs to the user
+            const parent = await prisma.category.findFirst({
+              where: { 
+                id: data.parent_id,
+                userId 
+              },
               select: { path: true, id: true }
             });
             
@@ -205,8 +229,24 @@ export function createCategoryService(): CategoryService {
       }
     },
 
-    async delete(id: string) {
+    async delete(id: string, userId: string) {
       try {
+        // First check if the category exists and belongs to the user
+        const existingCategory = await prisma.category.findFirst({
+          where: { 
+            id,
+            userId 
+          }
+        });
+        
+        if (!existingCategory) {
+          throw createAppError({
+            code: 'CATEGORY_NOT_FOUND',
+            message: `Category with ID ${id} not found`,
+            httpStatus: 404
+          });
+        }
+        
         // Check if the category has children
         const childrenCount = await prisma.category.count({
           where: { parentId: id }

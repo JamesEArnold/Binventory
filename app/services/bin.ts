@@ -40,7 +40,8 @@ const searchIndices = SearchIndicesSchema.parse({
       'description'
     ],
     filterableAttributes: [
-      'location'
+      'location',
+      'user_id'
     ]
   }
 });
@@ -63,6 +64,7 @@ export interface BinService {
     limit?: number;
     location?: string;
     search?: string;
+    userId: string;
   }): Promise<{
     bins: Bin[];
     pagination: {
@@ -71,11 +73,11 @@ export interface BinService {
       total: number;
     };
   }>;
-  create(data: Omit<Bin, 'id' | 'createdAt' | 'updatedAt' | 'qrCode'>): Promise<Bin>;
-  get(id: string): Promise<Bin>;
-  update(id: string, data: Partial<Bin>): Promise<Bin>;
-  delete(id: string): Promise<void>;
-  searchBins(query: string, filters?: Record<string, unknown>): Promise<SearchResult>;
+  create(data: Omit<Bin, 'id' | 'createdAt' | 'updatedAt' | 'qrCode'> & { userId: string }): Promise<Bin>;
+  get(id: string, userId: string): Promise<Bin>;
+  update(id: string, data: Partial<Bin>, userId: string): Promise<Bin>;
+  delete(id: string, userId: string): Promise<void>;
+  searchBins(query: string, userId: string, filters?: Record<string, unknown>): Promise<SearchResult>;
 }
 
 export function createBinService({ 
@@ -86,15 +88,21 @@ export function createBinService({
   searchService?: ReturnType<typeof createSearchService>;
 } = {}): BinService {
   return {
-    async list({ page = 1, limit = 10, location, search }) {
+    async list({ page = 1, limit = 10, location, search, userId }) {
       const skip = (page - 1) * limit;
       
-      // If there's a search query and MeiliSearch is available, use it
-      if (search && searchService) {
+      // Use search service if available and search is provided
+      if (searchService && search) {
         try {
+          // Search with MeiliSearch
+          const searchFilters: Record<string, unknown> = { user_id: userId };
+          if (location) {
+            searchFilters.location = location;
+          }
+          
           const searchResults = await searchService.search({
             query: search,
-            filters: location ? { location } : undefined,
+            filters: searchFilters,
             limit,
             offset: skip
           });
@@ -118,6 +126,7 @@ export function createBinService({
       
       // Default database search
       const where = {
+        userId,
         ...(location && { location }),
         ...(search && {
           OR: [
@@ -148,15 +157,18 @@ export function createBinService({
     },
 
     async create(data) {
-      // Check if bin with same label exists
-      const existingBin = await prismaClient.bin.findUnique({
-        where: { label: data.label },
+      // Check if bin with same label exists for this user
+      const existingBin = await prismaClient.bin.findFirst({
+        where: { 
+          label: data.label,
+          userId: data.userId
+        },
       });
 
       if (existingBin) {
         throw createAppError({
           code: 'BIN_ALREADY_EXISTS',
-          message: `A bin with label ${data.label} already exists`,
+          message: `A bin with label ${data.label} already exists for your account`,
           httpStatus: 409,
         });
       }
@@ -182,20 +194,24 @@ export function createBinService({
         }
         
         return bin;
-      } catch {
+      } catch (error) {
+        console.error('Error creating bin:', error);
         // If creation fails due to a unique constraint violation, it means another request
         // created a bin with the same label between our check and create
         throw createAppError({
           code: 'BIN_ALREADY_EXISTS',
-          message: `A bin with label ${data.label} already exists`,
+          message: `A bin with label ${data.label} already exists for your account`,
           httpStatus: 409,
         });
       }
     },
 
-    async get(id) {
-      const bin = await prismaClient.bin.findUnique({
-        where: { id },
+    async get(id, userId) {
+      const bin = await prismaClient.bin.findFirst({
+        where: { 
+          id,
+          userId 
+        },
         include: { items: true },
       });
 
@@ -210,10 +226,13 @@ export function createBinService({
       return bin;
     },
 
-    async update(id, data) {
-      // Check if bin exists
-      const existingBin = await prismaClient.bin.findUnique({
-        where: { id },
+    async update(id, data, userId) {
+      // Check if bin exists and belongs to user
+      const existingBin = await prismaClient.bin.findFirst({
+        where: { 
+          id,
+          userId 
+        },
       });
 
       if (!existingBin) {
@@ -224,45 +243,74 @@ export function createBinService({
         });
       }
 
-      // Check if new label conflicts with existing bin
+      // Check if new label conflicts with existing bin for this user
       if (data.label && data.label !== existingBin.label) {
-        const binWithLabel = await prismaClient.bin.findUnique({
-          where: { label: data.label },
+        const binWithLabel = await prismaClient.bin.findFirst({
+          where: { 
+            label: data.label,
+            userId,
+            id: { not: id } // Exclude current bin
+          },
         });
 
         if (binWithLabel) {
           throw createAppError({
             code: 'BIN_ALREADY_EXISTS',
-            message: `A bin with label ${data.label} already exists`,
+            message: `A bin with label ${data.label} already exists for your account`,
             httpStatus: 409,
           });
         }
       }
 
       // Update the bin
-      const updatedBin = await prismaClient.bin.update({
-        where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-        },
-      });
-      
-      // Update the bin in search
-      if (searchService) {
-        try {
-          await searchService.indexBin(updatedBin);
-        } catch (error) {
-          console.error('Failed to update bin in search index:', error);
-          // Don't fail the bin update if indexing fails
+      try {
+        const updatedBin = await prismaClient.bin.update({
+          where: { id },
+          data: {
+            ...data,
+            updatedAt: new Date(),
+          },
+        });
+        
+        // Update the bin in search
+        if (searchService) {
+          try {
+            await searchService.indexBin(updatedBin);
+          } catch (error) {
+            console.error('Failed to update bin in search index:', error);
+            // Don't fail the bin update if indexing fails
+          }
         }
-      }
 
-      return updatedBin;
+        return updatedBin;
+      } catch (error) {
+        console.error('Error updating bin:', error);
+        throw createAppError({
+          code: 'BIN_UPDATE_FAILED',
+          message: `Failed to update bin: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          httpStatus: 500,
+        });
+      }
     },
 
-    async delete(id) {
+    async delete(id, userId) {
       try {
+        // Check if bin exists and belongs to user
+        const bin = await prismaClient.bin.findFirst({
+          where: { 
+            id,
+            userId 
+          },
+        });
+        
+        if (!bin) {
+          throw createAppError({
+            code: 'BIN_NOT_FOUND',
+            message: `Bin with ID ${id} not found`,
+            httpStatus: 404,
+          });
+        }
+        
         // Delete from database
         await prismaClient.bin.delete({
           where: { id },
@@ -277,7 +325,11 @@ export function createBinService({
             // Don't fail if search deletion fails
           }
         }
-      } catch {
+      } catch (error: unknown) {
+        if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'BIN_NOT_FOUND') {
+          throw error;
+        }
+        
         throw createAppError({
           code: 'BIN_NOT_FOUND',
           message: `Bin with ID ${id} not found`,
@@ -286,7 +338,7 @@ export function createBinService({
       }
     },
     
-    async searchBins(query, filters) {
+    async searchBins(query, userId, filters = {}) {
       if (!searchService) {
         throw createAppError({
           code: 'SEARCH_UNAVAILABLE',
@@ -296,9 +348,12 @@ export function createBinService({
       }
       
       try {
+        // Add userId to filters
+        const searchFilters = { ...filters, user_id: userId };
+        
         const searchResults = await searchService.search({
           query,
-          filters,
+          filters: searchFilters,
           limit: 20,
           offset: 0,
           indexes: ['bins']

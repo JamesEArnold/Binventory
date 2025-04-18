@@ -59,6 +59,16 @@ export async function registerUser(data: RegisterInput): Promise<AuthResult> {
       },
     });
 
+    // Create an account record for email/password auth
+    await prisma.account.create({
+      data: {
+        userId: user.id,
+        type: 'credentials',
+        provider: 'credentials',
+        providerAccountId: user.id, // For credentials, we can use the user ID as the provider account ID
+      }
+    });
+
     return { success: true, user: excludePassword(user) };
   } catch (error) {
     if (error instanceof z.ZodError) {
