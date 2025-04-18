@@ -6,10 +6,12 @@
 
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
+import { requireAuth } from '../lib/auth';
 
 // Fetch items with their categories
-async function getItemsWithCategories() {
+async function getItemsWithCategories(userId: string) {
   const items = await prisma.item.findMany({
+    where: { userId },
     include: {
       category: true,
     },
@@ -22,7 +24,10 @@ async function getItemsWithCategories() {
 }
 
 export default async function ItemsPage() {
-  const items = await getItemsWithCategories();
+  // Ensure user is authenticated
+  const user = await requireAuth();
+  
+  const items = await getItemsWithCategories(user.id);
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">

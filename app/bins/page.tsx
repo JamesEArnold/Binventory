@@ -11,8 +11,9 @@ import BatchPrintButton from '../components/bins/BatchPrintButton';
 import { requireAuth } from '../lib/auth';
 
 // Fetch bins with their items
-async function getBinsWithItems() {
+async function getBinsWithItems(userId: string) {
   const bins = await prisma.bin.findMany({
+    where: { userId },
     include: {
       items: {
         include: {
@@ -30,9 +31,9 @@ async function getBinsWithItems() {
 
 export default async function BinsPage() {
   // Ensure user is authenticated
-  await requireAuth();
+  const user = await requireAuth();
   
-  const bins = await getBinsWithItems();
+  const bins = await getBinsWithItems(user.id);
   
   // Prepare bin data for printing
   const printableBins = bins.map(bin => ({

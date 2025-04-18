@@ -9,18 +9,28 @@ import { prisma } from './lib/prisma';
 import BatchPrintAction from './components/BatchPrintAction';
 import { requireAuth } from './lib/auth';
 
-async function getDashboardStats() {
-  const binCount = await prisma.bin.count();
-  const itemCount = await prisma.item.count();
-  const categoryCount = await prisma.category.count();
+async function getDashboardStats(userId: string) {
+  const binCount = await prisma.bin.count({
+    where: { userId }
+  });
+  
+  const itemCount = await prisma.item.count({
+    where: { userId }
+  });
+  
+  const categoryCount = await prisma.category.count({
+    where: { userId }
+  });
   
   const recentBins = await prisma.bin.findMany({
+    where: { userId },
     take: 5,
     orderBy: { createdAt: 'desc' },
   });
   
   // Get all bins for batch printing
   const allBins = await prisma.bin.findMany({
+    where: { userId },
     select: {
       id: true,
       label: true,
@@ -51,9 +61,9 @@ async function getDashboardStats() {
 
 export default async function HomePage() {
   // Ensure user is authenticated
-  await requireAuth();
+  const user = await requireAuth();
   
-  const { binCount, itemCount, categoryCount, recentBins, printableBins } = await getDashboardStats();
+  const { binCount, itemCount, categoryCount, recentBins, printableBins } = await getDashboardStats(user.id);
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">

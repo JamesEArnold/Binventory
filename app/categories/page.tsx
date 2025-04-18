@@ -6,10 +6,12 @@
 
 import Link from 'next/link';
 import { prisma } from '../lib/prisma';
+import { requireAuth } from '../lib/auth';
 
 // Fetch categories with their items count
-async function getCategoriesWithCounts() {
+async function getCategoriesWithCounts(userId: string) {
   const categories = await prisma.category.findMany({
+    where: { userId },
     include: {
       _count: {
         select: {
@@ -27,7 +29,10 @@ async function getCategoriesWithCounts() {
 }
 
 export default async function CategoriesPage() {
-  const categories = await getCategoriesWithCounts();
+  // Ensure user is authenticated
+  const user = await requireAuth();
+  
+  const categories = await getCategoriesWithCounts(user.id);
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">
