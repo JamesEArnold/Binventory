@@ -3,11 +3,29 @@ import { itemService } from '../route';
 import { ApiResponse } from '@/types/api';
 import { Item } from '@prisma/client';
 import { isAppError } from '@/utils/errors';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/api/auth/[...nextauth]/route';
 
 // GET /api/items/:id
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const item = await itemService.get(params.id);
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    const item = await itemService.get(params.id, userId);
 
     const response: ApiResponse<Item> = {
       success: true,
@@ -34,6 +52,23 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 // PATCH /api/items/:id
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    
     let body;
     try {
       body = await request.json();
@@ -51,7 +86,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
 
-    const item = await itemService.update(params.id, body);
+    const item = await itemService.update(params.id, body, userId);
 
     const response: ApiResponse<Item> = {
       success: true,
@@ -76,9 +111,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE /api/items/:id
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await itemService.delete(params.id);
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    await itemService.delete(params.id, userId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

@@ -3,6 +3,8 @@ import { createBinService, BinService } from '@/services/bin';
 import { ApiResponse } from '@/types/api';
 import { Bin } from '@/types/models';
 import { isAppError } from '@/utils/errors';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/api/auth/[...nextauth]/route';
 
 const defaultBinService = createBinService();
 
@@ -26,7 +28,23 @@ export async function GET(
       );
     }
 
-    const bin = await binService.get(params.id);
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    const bin = await binService.get(params.id, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -70,6 +88,23 @@ export async function PUT(
       );
     }
 
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    
     let body;
     try {
       body = await request.json();
@@ -86,7 +121,7 @@ export async function PUT(
       );
     }
 
-    const bin = await binService.update(params.id, body);
+    const bin = await binService.update(params.id, body, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -130,7 +165,24 @@ export async function DELETE(
       );
     }
 
-    await binService.delete(params.id);
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    
+    await binService.delete(params.id, userId);
     const response: ApiResponse<null> = {
       success: true,
     };
