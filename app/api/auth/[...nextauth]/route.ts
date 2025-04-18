@@ -88,8 +88,29 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user, account }) {
       // Save the provider info on the token when signing in
       if (user) {
-        token.id = user.id;
-        token.role = (user as UserType).role;
+        // For OAuth logins, we need to find the actual database user record first
+        if (account && (account.provider === "google" || account.provider === "github")) {
+          try {
+            // Find the user with this email in our database to get the proper ID
+            const dbUser = await prisma.user.findUnique({
+              where: { email: user.email as string }
+            });
+            
+            if (dbUser) {
+              // Use the database ID, not the OAuth provider ID
+              token.id = dbUser.id;
+              token.role = dbUser.role;
+            } else {
+              console.warn(`OAuth user with email ${user.email} not found in database during JWT creation`);
+            }
+          } catch (error) {
+            console.error("Error finding user in database during JWT creation:", error);
+          }
+        } else {
+          // For credential users, use the ID directly
+          token.id = user.id;
+          token.role = (user as UserType).role;
+        }
         
         if (account) {
           token.provider = account.provider;
