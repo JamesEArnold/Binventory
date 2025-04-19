@@ -274,7 +274,13 @@ export default async function BinDetailPage({ params }: { params: { id: string }
                   {binItem.item && (
                     <ItemDetail 
                       item={binItem.item}
-                      bins={[binItem]}
+                      bins={[{
+                        ...binItem,
+                        bin: {
+                          label: bin.label,
+                          location: bin.location
+                        }
+                      }]}
                       className="flex-1"
                     />
                   )}
