@@ -6,13 +6,13 @@
  * @dependencies Phase 1.1, Phase 1.2
  */
 
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Item, BinItem } from '../../types/models';
 
 export interface ItemDetailProps {
   item: Item;
-  bins?: Array<BinItem & { item?: Item }>;
+  bins?: Array<BinItem & { item?: Item, bin?: { label: string, location: string } }>;
   onQuantityChange?: (quantity: number) => void;
   onMove?: (fromBinId: string, toBinId: string) => void;
   onEdit?: (item: Item) => void;
@@ -30,6 +30,28 @@ export const ItemDetail: FC<ItemDetailProps> = ({
   const [quantity, setQuantity] = useState(item.quantity);
   const [selectedBinId, setSelectedBinId] = useState<string>('');
   const [targetBinId, setTargetBinId] = useState<string>('');
+  const [categoryName, setCategoryName] = useState<string>('');
+  
+  // Fetch category name when component mounts
+  useEffect(() => {
+    const fetchCategoryName = async () => {
+      if (!item.categoryId) return;
+      
+      try {
+        const response = await fetch(`/api/categories/${item.categoryId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setCategoryName(data.data.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching category:', error);
+      }
+    };
+    
+    fetchCategoryName();
+  }, [item.categoryId]);
   
   const handleQuantityChange = (delta: number) => {
     const newQuantity = Math.max(0, quantity + delta);
@@ -72,7 +94,17 @@ export const ItemDetail: FC<ItemDetailProps> = ({
           
           <div className="border-t border-gray-200 pt-3">
             <h3 className="text-sm font-medium text-gray-500">Category</h3>
-            <p className="mt-1 text-sm text-gray-900">{item.categoryId}</p>
+            <p className="mt-1 text-sm text-gray-900">
+              {categoryName ? (
+                <Link href={`/categories/${item.categoryId}`} className="text-blue-600 hover:underline">
+                  {categoryName}
+                </Link>
+              ) : item.categoryId ? (
+                item.categoryId
+              ) : (
+                'Uncategorized'
+              )}
+            </p>
           </div>
           
           <div className="border-t border-gray-200 pt-3">
@@ -142,7 +174,7 @@ export const ItemDetail: FC<ItemDetailProps> = ({
                     aria-label={binItem.binId}
                   />
                   <Link href={`/bins/${binItem.binId}`} className="text-sm font-medium text-blue-600 hover:underline">
-                    {binItem.binId}
+                    {binItem.bin?.label || binItem.binId}
                   </Link>
                 </div>
                 <span className="text-sm text-gray-500">{binItem.quantity} {item.unit}</span>
