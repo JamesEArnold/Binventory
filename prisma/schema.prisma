@@ -14,45 +14,51 @@ datasource db {
 }
 
 model Bin {
-  id          String    @id @default(uuid())
-  label       String    @db.VarChar(100)
-  location    String    @db.VarChar(200)
-  qrCode      String    @map("qr_code")
-  description String?   @db.VarChar(500)
-  imageUrl    String?   @map("image_url") @db.VarChar(1000)
-  imageKey    String?   @map("image_key") @db.VarChar(255)
-  userId      String    @map("user_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  items       BinItem[]
-  qrCodes     QrCode[]
-  user        User      @relation(fields: [userId], references: [id])
+  id              String    @id @default(uuid())
+  label           String    @db.VarChar(100)
+  location        String    @db.VarChar(200)
+  qrCode          String    @map("qr_code")
+  description     String?   @db.VarChar(500)
+  imageUrl        String?   @map("image_url") @db.VarChar(1000)
+  imageKey        String?   @map("image_key") @db.VarChar(255)
+  userId          String?   @map("user_id")
+  organizationId  String?   @map("organization_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  items           BinItem[]
+  qrCodes         QrCode[]
+  user            User?     @relation(fields: [userId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
 
   @@unique([label, userId])
   @@index([label])
   @@index([location])
   @@index([userId])
+  @@index([organizationId])
   @@map("bins")
 }
 
 model Item {
-  id          String    @id @default(uuid())
-  name        String    @db.VarChar(200)
-  description String    @db.VarChar(1000)
-  categoryId  String    @map("category_id")
-  quantity    Int       @default(0)
-  minQuantity Int?      @map("min_quantity")
-  unit        String
-  userId      String    @map("user_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  category    Category  @relation(fields: [categoryId], references: [id])
-  bins        BinItem[]
-  user        User      @relation(fields: [userId], references: [id])
+  id              String    @id @default(uuid())
+  name            String    @db.VarChar(200)
+  description     String    @db.VarChar(1000)
+  categoryId      String    @map("category_id")
+  quantity        Int       @default(0)
+  minQuantity     Int?      @map("min_quantity")
+  unit            String
+  userId          String?   @map("user_id")
+  organizationId  String?   @map("organization_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  category        Category  @relation(fields: [categoryId], references: [id])
+  bins            BinItem[]
+  user            User?     @relation(fields: [userId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([name])
   @@index([categoryId])
   @@index([userId])
+  @@index([organizationId])
   @@map("items")
 }
 
@@ -70,19 +76,22 @@ model BinItem {
 }
 
 model Category {
-  id       String     @id @default(uuid())
-  name     String     @db.VarChar(100)
-  parentId String?    @map("parent_id")
-  path     String[]
-  userId   String     @map("user_id")
-  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryHierarchy")
-  items    Item[]
-  user     User       @relation(fields: [userId], references: [id])
+  id              String     @id @default(uuid())
+  name            String     @db.VarChar(100)
+  parentId        String?    @map("parent_id")
+  path            String[]
+  userId          String?    @map("user_id")
+  organizationId  String?    @map("organization_id")
+  parent          Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryHierarchy")
+  items           Item[]
+  user            User?      @relation(fields: [userId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
 
   @@index([name])
   @@index([path])
   @@index([userId])
+  @@index([organizationId])
   @@map("categories")
 }
 
@@ -103,21 +112,22 @@ model QrCode {
 
 // NextAuth.js Models
 model User {
-  id            String    @id @default(uuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  accounts      Account[]
-  sessions      Session[]
-  twoFactorAuth TwoFactorAuth?
-  bins          Bin[]
-  items         Item[]
-  categories    Category[]
+  id                String               @id @default(uuid())
+  name              String?
+  email             String               @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String?
+  role              Role                 @default(USER)
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+  accounts          Account[]
+  sessions          Session[]
+  twoFactorAuth     TwoFactorAuth?
+  bins              Bin[]
+  items             Item[]
+  categories        Category[]
+  organizationMemberships OrganizationMember[]
 
   @@map("users")
 }
@@ -193,7 +203,66 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Organization Models for multi-tenant collaboration
+model Organization {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relationships
+  memberships   OrganizationMember[]
+  bins          Bin[]
+  items         Item[]
+  categories    Category[]
+  
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id              String    @id @default(uuid())
+  organizationId  String    @map("organization_id")
+  userId          String    @map("user_id")
+  role            OrgRole   @default(MEMBER)
+  joinedAt        DateTime  @default(now()) @map("joined_at")
+  invitedBy       String?   @map("invited_by")
+  
+  // Relationships
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+  MEMBER
+}
+
 enum Role {
   USER
   ADMIN
+}
+
+// Object-level Permission System
+model Permission {
+  id             String       @id @default(uuid())
+  objectType     String       // 'bin', 'item', 'category'
+  objectId       String       // The ID of the object
+  subjectType    String       // 'user', 'organization', 'role'
+  subjectId      String       // The ID of the subject
+  action         String       // 'read', 'write', 'admin'
+  grantedBy      String?      // User ID who granted permission
+  grantedAt      DateTime     @default(now()) @map("granted_at")
+  
+  @@unique([objectType, objectId, subjectType, subjectId, action])
+  @@index([objectType, objectId])
+  @@index([subjectType, subjectId])
+  @@map("permissions")
 }
