@@ -848,7 +848,7 @@ interface AccessControl {
    - Location: `app/api/auth/[...nextauth]/route.ts`
    - Implementation: NextAuth.js route handler with providers
    - Key features:
-     - Credentials provider (email/password)
+     - Credentials provider with email/password authentication
      - OAuth providers (Google, GitHub)
      - JWT session handling
      - Callback configurations
@@ -1256,5 +1256,370 @@ For new developers working on a component:
 - Production deployment through CI/CD
 - Feature flags for gradual rollout
 - Automated rollback capabilities
+
+## Phase 7: Fine-Grained Authorization & Multi-tenant Collaboration
+
+### Phase 7.1: Organization Model & Membership System
+**Context**: Foundation for multi-user collaboration and shared resources
+- Implementation Priority: High
+- Dependencies: Phase 6.1, Phase 6.2
+- Status: Completed
+- Technical Requirements:
+  - Organization/Group data model
+  - Membership system with roles
+  - Invitation and onboarding flow
+  - Schema migrations
+
+**Implementation Tasks**:
+
+1. Create organization data models:
+```typescript
+model Organization {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  description   String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relationships
+  memberships   OrganizationMember[]
+  bins          Bin[]
+  items         Item[]
+  categories    Category[]
+  
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id              String    @id @default(uuid())
+  organizationId  String    @map("organization_id")
+  userId          String    @map("user_id")
+  role            OrgRole   @default(MEMBER)
+  joinedAt        DateTime  @default(now()) @map("joined_at")
+  invitedBy       String?   @map("invited_by")
+  
+  // Relationships
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, userId])
+  @@map("organization_members")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+  MEMBER
+}
+```
+
+2. Modify core entity models to support organization ownership:
+```typescript
+model Bin {
+  // Existing fields...
+  
+  // Multi-owner fields
+  userId          String?   @map("user_id")
+  organizationId  String?   @map("organization_id")
+  
+  // Relationships
+  user            User?      @relation(fields: [userId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  
+  // Add a check constraint to ensure either userId or organizationId is set
+  @@check(
+    (
+      (userId IS NOT NULL AND organizationId IS NULL) OR
+      (userId IS NULL AND organizationId IS NOT NULL)
+    )
+  )
+}
+
+// Similar changes for Item and Category models
+```
+
+3. Implement organization management services:
+   - Organization CRUD operations
+   - Membership management (add, remove, update roles)
+   - Invitation system
+   - Data migration utilities
+
+4. Create organization API routes:
+   - `/api/organizations` - List/create organizations
+   - `/api/organizations/:id` - Get/update/delete organization
+   - `/api/organizations/:id/members` - Manage members
+   - `/api/organizations/:id/invitations` - Handle invitations
+
+**Success Criteria**:
+- Users can create and manage organizations
+- Members can be added with appropriate roles
+- Invitation flow works properly
+- Core entities can be associated with organizations
+- Data isolation maintained between organizations
+
+**Technical Details Added:**
+- Database Additions:
+  - Organization table with proper indexes
+  - OrganizationMember table with role field
+  - Foreign key relationships to core entities
+
+- Integration Points:
+  - User authentication system via Next-Auth
+  - Core entity services (bin, item, category)
+  - API middleware for authorization checks
+  - Validation utilities for membership operations
+
+### Phase 7.2: Object-level Permission System
+**Context**: Enable fine-grained access control to inventory resources
+- Implementation Priority: High
+- Dependencies: Phase 7.1
+- Status: Completed
+- Technical Requirements:
+  - Permission data model
+  - Access control service
+  - Integration with existing services
+  - Permission checking middleware
+
+**Implementation Tasks**:
+
+1. Create permission models:
+```typescript
+model Permission {
+  id             String       @id @default(uuid())
+  objectType     String       // 'bin', 'item', 'category'
+  objectId       String       // The ID of the object
+  subjectType    String       // 'user', 'organization', 'role'
+  subjectId      String       // The ID of the subject
+  action         String       // 'read', 'write', 'admin'
+  grantedBy      String?      // User ID who granted permission
+  grantedAt      DateTime     @default(now())
+  
+  @@unique([objectType, objectId, subjectType, subjectId, action])
+  @@map("permissions")
+}
+```
+
+2. Implement permission checking service:
+```typescript
+interface PermissionService {
+  canAccess(params: {
+    userId: string;
+    objectType: string;
+    objectId: string;
+    action: string;
+  }): Promise<boolean>;
+  
+  grant(params: {
+    objectType: string;
+    objectId: string;
+    subjectType: string;
+    subjectId: string;
+    action: string;
+    grantedBy: string;
+  }): Promise<Permission>;
+  
+  revoke(params: {
+    objectType: string;
+    objectId: string;
+    subjectType: string;
+    subjectId: string;
+    action: string;
+  }): Promise<void>;
+  
+  getPermissions(params: {
+    objectType: string;
+    objectId: string;
+  }): Promise<Permission[]>;
+}
+```
+
+3. Modify existing services to respect permissions:
+   - Update core services (bin, item, category)
+   - Add permission checking to all data access methods
+   - Implement default permission creation for new objects
+   - Create utility functions for common permission patterns
+
+4. Create API routes for permission management:
+   - `/api/permissions` - Grant/revoke permissions
+   - `/api/objects/:type/:id/permissions` - Get/set object permissions
+   
+**Success Criteria**:
+- Permission system enforces access control correctly
+- Objects can be shared with specific users or organizations
+- Different permission levels work as expected
+- Performance impact is minimal
+- UI provides clear indication of access levels
+
+**Technical Details Added:**
+- Database Additions:
+  - Permission table with compound unique constraints
+  - Optimized indexes for permission queries
+  
+- Integration Points:
+  - Organization membership system
+  - Core entity services for object validation
+  - Permission-based middleware for API routes
+  - Default permission creation workflows
+
+### Phase 7.3: Shared Inventory Experience
+**Context**: User interface for collaborative inventory management
+- Implementation Priority: Medium
+- Dependencies: Phase 7.1, Phase 7.2
+- Technical Requirements:
+  - Organization UI components
+  - Context switching
+  - Permission management UI
+  - Indicators for shared resources
+
+**Implementation Tasks**:
+
+1. Design and implement organization management UI:
+   - Organization creation and settings
+   - Member management interface
+   - Role assignment and permissions
+   - Invitation workflow
+
+2. Create context switcher:
+   - Personal vs. organization context
+   - Quick switching between organizations
+   - Visual indicators for current context
+   - URL structure to reflect current context
+
+3. Build sharing interface:
+   - Object-level sharing modal
+   - Permission selection
+   - User/organization search
+   - Bulk sharing operations
+
+4. Implement visual indicators:
+   - Shared status indicators on objects
+   - Owner/organization labels
+   - Permission level indicators
+   - Access control UI elements
+
+5. Update existing views to support organization context:
+   - Dashboard with organization data
+   - Filtered lists based on context
+   - Organization-specific analytics
+   - Shared item notifications
+
+**Success Criteria**:
+- UI clearly indicates shared resources
+- Context switching is intuitive
+- Sharing interface is user-friendly
+- Performance remains responsive
+- Users understand permission levels visually
+
+### Phase 7.4: Advanced Collaboration Features
+**Context**: Enhanced features for team inventory management
+- Implementation Priority: Medium
+- Dependencies: Phase 7.3
+- Technical Requirements:
+  - Real-time updates
+  - Activity tracking
+  - Collaboration tools
+  - Notification system
+
+**Implementation Tasks**:
+
+1. Implement activity feed:
+   - Track changes to shared resources
+   - User activity timeline
+   - Filter by resource type and action
+   - Organization-wide activity view
+
+2. Create notification system:
+   - New share notifications
+   - Permission changes
+   - Important inventory updates
+   - Organization announcements
+
+3. Build collaboration tools:
+   - Comments on inventory items
+   - Task assignments
+   - Due dates and reminders
+   - Shared notes
+
+4. Implement real-time updates:
+   - WebSocket or SSE integration
+   - Live inventory changes
+   - Concurrent editing indicators
+   - Conflict resolution
+
+**Success Criteria**:
+- Users are aware of changes to shared resources
+- Collaboration features enhance productivity
+- Notifications are timely and relevant
+- Real-time updates work reliably
+- User experience remains smooth
+
+### Data Access Patterns
+To support the multi-tenant model with fine-grained access control, data access will follow these patterns:
+
+1. **Context-Based Queries**: All queries will include a context (personal or organization)
+```typescript
+// Example query structure
+const bins = await binService.list({
+  context: {
+    type: 'organization', // or 'personal'
+    id: organizationId, // only for organization context
+  },
+  userId: currentUserId, // always required for permission checking
+  // other query parameters
+});
+```
+
+2. **Permission Checking Flow**:
+```
+1. Check if object belongs to user directly
+2. Check if object belongs to an organization user is a member of
+3. Check if user has explicit permission for this object
+4. Check if user's organization has permission for this object
+5. Check if user's role in the organization grants access
+```
+
+3. **Caching Strategy**:
+   - Cache permission results to reduce database load
+   - Invalidate on permission changes
+   - Hierarchical permission resolution
+
+### API Changes
+The existing API will be extended with:
+
+1. **Context Headers/Parameters**:
+   - `X-Context-Type`: `personal` or `organization`
+   - `X-Context-Id`: Organization ID when in organization context
+
+2. **New Endpoints**:
+   - Organization management
+   - Membership management
+   - Permission management
+   - Sharing operations
+
+3. **Modified Existing Endpoints**:
+   - All resource endpoints will respect context and permissions
+   - Additional filtering based on access level
+   - Permission information included in responses
+
+### Security Considerations
+The implementation will follow these security principles:
+
+1. **Least Privilege**: Default to no access, explicitly grant as needed
+2. **Defense in Depth**: Multiple layers of permission checking
+3. **Audit Trail**: Log all permission changes and access decisions
+4. **Regular Validation**: Periodic permission verification routines
+5. **No Trust Assumptions**: Re-verify permissions on every request
+
+### Performance Optimization
+To ensure performance with added complexity:
+
+1. **Denormalized Permissions**: Use materialized paths or denormalized structures
+2. **Batch Permission Checks**: Check multiple permissions in single queries
+3. **Caching Layer**: Cache permission results with appropriate invalidation
+4. **Eager Loading**: Include permission data in main queries where possible
+5. **Pagination**: Ensure all list operations use pagination
 
 [More sections to be added as needed...] 
