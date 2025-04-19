@@ -11,6 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
+    const id = await params.id;
     if (!session || !session.user) {
       return NextResponse.json(
         {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const userId = session.user.id;
-    const category = await categoryService.get(params.id, userId);
+    const category = await categoryService.get(id, userId);
 
     const response: ApiResponse<Category> = {
       success: true,
