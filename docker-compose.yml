@@ -17,21 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.5
-    environment:
-      MEILI_MASTER_KEY: "binventory_meili_local_key"
-      MEILI_NO_ANALYTICS: "true"
-      MEILI_ENV: "development"
-    ports:
-      - "7700:7700"
-    volumes:
-      - meilisearch_data:/meili_data
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "http://localhost:7700/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
       
   # LocalStack S3 service for cloud storage emulation
   localstack:
@@ -83,22 +68,8 @@ services:
       /init-s3-bucket.sh'
     restart: "no" # Run once and exit
 
-  # One-time initialization container for search indices
-  search-init:
-    container_name: binventory-search-init
-    build:
-      context: .
-      dockerfile: scripts/Dockerfile.search-init
-    depends_on:
-      meilisearch:
-        condition: service_healthy
-    environment:
-      - MEILI_HOST=http://meilisearch:7700
-      - MEILI_MASTER_KEY=binventory_meili_local_key
-    restart: "no" # Run once and exit
 
 volumes:
   postgres_data:
-  meilisearch_data:
   localstack_data:
   localstack_tmp: 

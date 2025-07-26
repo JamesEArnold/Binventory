@@ -7,6 +7,14 @@
 import { FC } from 'react';
 import Link from 'next/link';
 import { Bin, BinItem } from '../../types/models';
+import { createShareComponents } from '../organization/createShareComponents';
+import { ObjectType } from '@/types/permission';
+
+// Create bin sharing components
+const BinShare = createShareComponents({
+  objectType: ObjectType.BIN,
+  canShare: true
+});
 
 export interface BinCardProps {
   bin: Bin;
@@ -36,11 +44,16 @@ export const BinCard: FC<BinCardProps> = ({
     >
       <div className="p-4">
         <div className="flex items-center justify-between">
-          <Link href={`/bins/${bin.id}`} className="text-lg font-medium text-blue-600 hover:underline">
-            {bin.label}
-          </Link>
+          <div className="flex items-center">
+            <Link href={`/bins/${bin.id}`} className="text-lg font-medium text-blue-600 hover:underline">
+              {bin.label}
+            </Link>
+            <BinShare.Indicator id={bin.id} name={bin.label} className="ml-2" />
+          </div>
           
           <div className="flex space-x-2">
+            <BinShare.Button id={bin.id} name={bin.label} className="mr-1" />
+            
             {onScan && (
               <button 
                 onClick={() => onScan(bin.id)}

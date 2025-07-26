@@ -12,6 +12,48 @@ import {
 import { OrgRole } from '@/types/organization';
 import { Prisma } from '@prisma/client';
 
+// Simple in-memory cache for permission checks
+// Key format: userId:objectType:objectId:action
+const permissionCache = new Map<string, { result: boolean; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+
+// Interface for object ownership data
+interface ObjectOwnershipData {
+  userId?: string | null;
+  organizationId?: string | null;
+}
+
+// Function to generate cache key
+function generateCacheKey(userId: string, objectType: string, objectId: string, action: string): string {
+  return `${userId}:${objectType}:${objectId}:${action}`;
+}
+
+// Helper function to invalidate cache entries for an object
+function invalidateObjectCache(objectType: string, objectId: string): void {
+  // Clear all cache entries related to this object
+  // Since we can't easily determine which users have cached access to this object,
+  // we need to iterate through all cache entries
+  const keysToDelete: string[] = [];
+  
+  // First collect keys to delete
+  Array.from(permissionCache.keys()).forEach(key => {
+    if (key.includes(`:${objectType}:${objectId}:`)) {
+      keysToDelete.push(key);
+    }
+  });
+  
+  // Then delete them
+  keysToDelete.forEach(key => {
+    permissionCache.delete(key);
+  });
+}
+
+// Helper function to cache result and return it
+function cacheResult(cacheKey: string, result: boolean): boolean {
+  permissionCache.set(cacheKey, { result, timestamp: Date.now() });
+  return result;
+}
+
 export interface PermissionService {
   /**
    * Check if a user has permission to perform an action on an object
@@ -49,171 +91,149 @@ export function createPermissionService(
 ): PermissionService {
   return {
     async canAccess({ userId, objectType, objectId, action }) {
-      // Get the user to check their role
+      // Check cache first
+      const cacheKey = generateCacheKey(userId, objectType, objectId, action);
+      const cached = permissionCache.get(cacheKey);
+      
+      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+        return cached.result;
+      }
+
+      // Get the user and check role (single query with select)
       const user = await prismaClient.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user) {
-        return false;
-      }
-
-      // Admin users always have access
-      if (user.role === 'ADMIN') {
-        return true;
-      }
-
-      // Check if there's a direct permission for this user
-      const userPermission = await prismaClient.permission.findUnique({
-        where: {
-          objectType_objectId_subjectType_subjectId_action: {
-            objectType,
-            objectId,
-            subjectType: SubjectType.USER,
-            subjectId: userId,
-            action
-          }
-        }
-      });
-
-      if (userPermission) {
-        return true;
-      }
-
-      // Get organizations the user is a member of
-      const userOrganizations = await prismaClient.organizationMember.findMany({
-        where: {
-          userId
-        },
-        select: {
-          organizationId: true,
+        where: { id: userId },
+        select: { 
+          id: true, 
           role: true
         }
       });
 
-      // Check organization-level permissions
-      for (const org of userOrganizations) {
-        // Check if there's a permission for this organization
-        const orgPermission = await prismaClient.permission.findUnique({
+      if (!user) {
+        return cacheResult(cacheKey, false);
+      }
+
+      // Admin users always have access
+      if (user.role === 'ADMIN') {
+        return cacheResult(cacheKey, true);
+      }
+
+      // Batch query for permissions and user organizations
+      const [userPermission, userOrganizations, rolePermission] = await Promise.all([
+        // Check direct user permission
+        prismaClient.permission.findUnique({
           where: {
             objectType_objectId_subjectType_subjectId_action: {
               objectType,
               objectId,
-              subjectType: SubjectType.ORGANIZATION,
-              subjectId: org.organizationId,
+              subjectType: SubjectType.USER,
+              subjectId: userId,
               action
             }
           }
-        });
-
-        if (orgPermission) {
-          return true;
-        }
-
-        // Check if this is an organization-owned object
-        // For example, if the bin belongs to the organization
-        if (objectType === ObjectType.BIN) {
-          const bin = await prismaClient.bin.findUnique({
-            where: { id: objectId }
-          });
-
-          if (bin?.organizationId === org.organizationId) {
-            // Organization members have read access to organization's bins
-            if (action === Action.READ) {
-              return true;
-            }
-
-            // Organization owners and admins have write and admin access
-            if ((action === Action.WRITE || action === Action.ADMIN) && 
-                (org.role === OrgRole.OWNER || org.role === OrgRole.ADMIN)) {
-              return true;
+        }),
+        
+        // Get organizations the user is a member of
+        prismaClient.organizationMember.findMany({
+          where: { userId },
+          select: {
+            organizationId: true,
+            role: true
+          }
+        }),
+        
+        // Check role-based permission
+        prismaClient.permission.findUnique({
+          where: {
+            objectType_objectId_subjectType_subjectId_action: {
+              objectType,
+              objectId,
+              subjectType: SubjectType.ROLE,
+              subjectId: user.role,
+              action
             }
           }
-        } else if (objectType === ObjectType.ITEM) {
-          const item = await prismaClient.item.findUnique({
-            where: { id: objectId }
-          });
+        })
+      ]);
 
-          if (item?.organizationId === org.organizationId) {
-            // Organization members have read access to organization's items
-            if (action === Action.READ) {
-              return true;
-            }
-
-            // Organization owners and admins have write and admin access
-            if ((action === Action.WRITE || action === Action.ADMIN) && 
-                (org.role === OrgRole.OWNER || org.role === OrgRole.ADMIN)) {
-              return true;
-            }
-          }
-        } else if (objectType === ObjectType.CATEGORY) {
-          const category = await prismaClient.category.findUnique({
-            where: { id: objectId }
-          });
-
-          if (category?.organizationId === org.organizationId) {
-            // Organization members have read access to organization's categories
-            if (action === Action.READ) {
-              return true;
-            }
-
-            // Organization owners and admins have write and admin access
-            if ((action === Action.WRITE || action === Action.ADMIN) && 
-                (org.role === OrgRole.OWNER || org.role === OrgRole.ADMIN)) {
-              return true;
-            }
-          }
-        }
+      // Direct user permission check
+      if (userPermission) {
+        return cacheResult(cacheKey, true);
+      }
+      
+      // Role permission check
+      if (rolePermission) {
+        return cacheResult(cacheKey, true);
       }
 
-      // Check if there's a permission for the user's role
-      const rolePermission = await prismaClient.permission.findUnique({
-        where: {
-          objectType_objectId_subjectType_subjectId_action: {
+      // If user is in any organizations, check organization permissions
+      if (userOrganizations.length > 0) {
+        // Get all relevant object data in one query based on object type
+        let objectData: ObjectOwnershipData | null = null;
+        
+        if (objectType === ObjectType.BIN) {
+          objectData = await prismaClient.bin.findUnique({
+            where: { id: objectId },
+            select: { userId: true, organizationId: true }
+          });
+        } else if (objectType === ObjectType.ITEM) {
+          objectData = await prismaClient.item.findUnique({
+            where: { id: objectId },
+            select: { userId: true, organizationId: true }
+          });
+        } else if (objectType === ObjectType.CATEGORY) {
+          objectData = await prismaClient.category.findUnique({
+            where: { id: objectId },
+            select: { userId: true, organizationId: true }
+          });
+        }
+        
+        // Check object ownership by user
+        if (objectData?.userId === userId) {
+          return cacheResult(cacheKey, true);
+        }
+        
+        // Get all organization IDs for faster checks
+        const orgIds = userOrganizations.map(org => org.organizationId);
+        
+        // Check organization-level permissions (one query for all orgs)
+        const orgPermissions = await prismaClient.permission.findMany({
+          where: {
             objectType,
             objectId,
-            subjectType: SubjectType.ROLE,
-            subjectId: user.role,
+            subjectType: SubjectType.ORGANIZATION,
+            subjectId: { in: orgIds },
             action
           }
-        }
-      });
-
-      if (rolePermission) {
-        return true;
-      }
-
-      // Check ownership
-      if (objectType === ObjectType.BIN) {
-        const bin = await prismaClient.bin.findUnique({
-          where: { id: objectId }
         });
         
-        // Object owners have all permissions
-        if (bin?.userId === userId) {
-          return true;
+        if (orgPermissions.length > 0) {
+          return cacheResult(cacheKey, true);
         }
-      } else if (objectType === ObjectType.ITEM) {
-        const item = await prismaClient.item.findUnique({
-          where: { id: objectId }
-        });
         
-        // Object owners have all permissions
-        if (item?.userId === userId) {
-          return true;
-        }
-      } else if (objectType === ObjectType.CATEGORY) {
-        const category = await prismaClient.category.findUnique({
-          where: { id: objectId }
-        });
-        
-        // Object owners have all permissions
-        if (category?.userId === userId) {
-          return true;
+        // Check object ownership by organization
+        if (objectData?.organizationId && orgIds.includes(objectData.organizationId)) {
+          // Find user's role in this organization
+          const orgMembership = userOrganizations.find(
+            org => org.organizationId === objectData.organizationId
+          );
+          
+          if (orgMembership) {
+            // Organization members have read access to organization's objects
+            if (action === Action.READ) {
+              return cacheResult(cacheKey, true);
+            }
+            
+            // Organization owners and admins have write and admin access
+            if ((action === Action.WRITE || action === Action.ADMIN) && 
+               (orgMembership.role === OrgRole.OWNER || orgMembership.role === OrgRole.ADMIN)) {
+              return cacheResult(cacheKey, true);
+            }
+          }
         }
       }
 
-      return false;
+      // No permission found
+      return cacheResult(cacheKey, false);
     },
 
     async grant({ objectType, objectId, subjectType, subjectId, action, grantedBy }) {
@@ -293,7 +313,7 @@ export function createPermissionService(
       }
 
       // Create or update the permission
-      return prismaClient.permission.upsert({
+      const result = await prismaClient.permission.upsert({
         where: {
           objectType_objectId_subjectType_subjectId_action: {
             objectType,
@@ -316,6 +336,11 @@ export function createPermissionService(
           grantedBy
         }
       });
+      
+      // Invalidate cache for this object
+      invalidateObjectCache(objectType, objectId);
+      
+      return result;
     },
 
     async revoke({ objectType, objectId, subjectType, subjectId, action }) {
@@ -346,6 +371,9 @@ export function createPermissionService(
           id: permission.id
         }
       });
+      
+      // Invalidate cache for this object
+      invalidateObjectCache(objectType, objectId);
     },
 
     async getPermissions(query) {

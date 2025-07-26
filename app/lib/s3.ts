@@ -6,10 +6,15 @@ const awsRegion = process.env.AWS_REGION || 'us-east-1';
 const accessKeyId = process.env.AWS_ACCESS_KEY_ID || 'binventory';
 const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY || 'binventory_local';
 
+// Detect environment and storage provider
+const isLocalStack = s3Endpoint.includes('localhost') || s3Endpoint.includes('localstack');
+const isCloudflareR2 = s3Endpoint.includes('r2.cloudflarestorage.com');
+const isProduction = process.env.NODE_ENV === 'production';
+
 console.log('S3 Client Configuration:');
 console.log('Endpoint:', s3Endpoint);
 console.log('Region:', awsRegion);
-console.log('Using LocalStack:', s3Endpoint.includes('localhost') || s3Endpoint.includes('localstack'));
+console.log('Environment:', { isLocalStack, isCloudflareR2, isProduction });
 
 export const s3Client = new S3Client({
   endpoint: s3Endpoint,
@@ -18,7 +23,8 @@ export const s3Client = new S3Client({
     accessKeyId: accessKeyId,
     secretAccessKey: secretAccessKey
   },
-  forcePathStyle: true, // Required for LocalStack
+  // Cloudflare R2 doesn't need forcePathStyle, but LocalStack does
+  forcePathStyle: isLocalStack,
   // Add retry configuration for more resilience
   maxAttempts: 3
 });

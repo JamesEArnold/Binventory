@@ -13,6 +13,7 @@ import { Item, BinItem } from '../../types/models';
 import { storageService } from '@/services/storage';
 import { PrintButton } from '../../components/bins/PrintButton';
 import { requireAuth } from '../../lib/auth';
+import BinDetailShare from './BinDetailShare';
 
 // Define a type that includes the item relation
 interface BinItemWithItem extends BinItem {
@@ -116,7 +117,10 @@ export default async function BinDetailPage({ params }: { params: { id: string }
         <div className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
             <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 break-words">{bin.label}</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 break-words">{bin.label}</h1>
+                <BinDetailShare id={bin.id} name={bin.label} />
+              </div>
               <div className="flex items-center text-gray-600 mb-4">
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
