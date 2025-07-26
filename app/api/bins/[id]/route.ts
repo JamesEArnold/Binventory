@@ -15,7 +15,8 @@ export async function GET(
   binService: BinService = defaultBinService
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -44,7 +45,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const bin = await binService.get(params.id, userId);
+    const bin = await binService.get(id, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -75,7 +76,8 @@ export async function PUT(
   binService: BinService = defaultBinService
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -121,7 +123,7 @@ export async function PUT(
       );
     }
 
-    const bin = await binService.update(params.id, body, userId);
+    const bin = await binService.update(id, body, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -152,7 +154,8 @@ export async function DELETE(
   binService: BinService = defaultBinService
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -182,7 +185,7 @@ export async function DELETE(
 
     const userId = session.user.id;
     
-    await binService.delete(params.id, userId);
+    await binService.delete(id, userId);
     const response: ApiResponse<null> = {
       success: true,
     };

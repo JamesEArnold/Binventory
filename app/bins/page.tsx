@@ -7,13 +7,29 @@
 import Link from 'next/link';
 import { BinCard } from '../components/bins/BinCard';
 import { prisma } from '../lib/prisma';
-import BatchPrintButton from '../components/bins/BatchPrintButton';
 import { requireAuth } from '../lib/auth';
+import { OperationContext } from '@/types/organization';
+import { permissionService } from '@/services/permission';
+import { ObjectType, Action, SubjectType } from '@/types/permission';
 
-// Fetch bins with their items
-async function getBinsWithItems(userId: string) {
+interface GetBinsOptions {
+  context: OperationContext;
+  userId: string;
+}
+
+interface SharedPermission {
+  objectId: string;
+}
+
+// Fetch bins with their items based on context
+async function getBinsWithItems({ context, userId }: GetBinsOptions) {
+  // Build the where clause based on context
+  const where = context.type === 'organization' && context.id
+    ? { organizationId: context.id }  // Organization context
+    : { userId };                     // Personal context
+
   const bins = await prisma.bin.findMany({
-    where: { userId },
+    where,
     include: {
       items: {
         include: {
@@ -26,6 +42,49 @@ async function getBinsWithItems(userId: string) {
     }
   });
   
+  // If in organization context, also fetch bins shared with the user
+  if (context.type === 'organization' && context.id) {
+    try {
+      // Get permissions where the user has access to bins
+      const permissions = await permissionService.getPermissions({
+        subjectType: SubjectType.USER,
+        subjectId: userId,
+        objectType: ObjectType.BIN,
+        action: Action.READ
+      });
+      
+      // If there are shared bins, fetch and merge them
+      if (permissions.length > 0) {
+        const sharedBinIds = permissions.map((p: SharedPermission) => p.objectId);
+        
+        // Skip if no shared bin IDs
+        if (sharedBinIds.length === 0) return bins;
+        
+        const sharedBins = await prisma.bin.findMany({
+          where: {
+            id: { in: sharedBinIds },
+            organizationId: { not: context.id }, // Exclude bins from current org
+          },
+          include: {
+            items: {
+              include: {
+                item: true
+              }
+            }
+          },
+          orderBy: {
+            label: 'asc'
+          }
+        });
+        
+        // Add shared bins to the result
+        bins.push(...sharedBins);
+      }
+    } catch (error) {
+      console.error('Error fetching shared bins:', error);
+    }
+  }
+  
   return bins;
 }
 
@@ -33,28 +92,21 @@ export default async function BinsPage() {
   // Ensure user is authenticated
   const user = await requireAuth();
   
-  const bins = await getBinsWithItems(user.id);
+  // We determine context from the path in middleware or client components
+  // For this server component, we'll default to personal context
+  const context: OperationContext = { type: 'personal' };
   
-  // Prepare bin data for printing
-  const printableBins = bins.map(bin => ({
-    id: bin.id,
-    label: bin.label,
-    location: bin.location,
-    description: bin.description || undefined,
-    qrCodeUrl: `/api/qr/image/${bin.id}`
-  }));
+  // Get bins based on context
+  const bins = await getBinsWithItems({ 
+    context, 
+    userId: user.id 
+  });
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Bins</h1>
         <div className="flex space-x-3">
-          {/* {printableBins.length > 1 && (
-            <div className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <BatchPrintButton allBins={printableBins} />
-              <span className="text-sm font-medium text-gray-600">Batch Print</span>
-            </div>
-          )} */}
           <Link 
             href="/bins/new" 
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"

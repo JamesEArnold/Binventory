@@ -1,20 +1,18 @@
 import { PrismaClient, User, Role } from '@prisma/client';
 import { compare, hash } from 'bcrypt';
 import { z } from 'zod';
+import { authSchemas } from '@/lib/validation';
 
 const prisma = new PrismaClient();
 
-// Validation schemas
-export const registerSchema = z.object({
-  name: z.string().min(2).max(100),
-  email: z.string().email(),
-  password: z.string().min(8).max(100),
-});
+// Use enhanced validation schemas
+export const registerSchema = authSchemas.register;
+export const loginSchema = authSchemas.login;
 
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
+// Password security configuration
+const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
+const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
+const LOCKOUT_DURATION = parseInt(process.env.LOCKOUT_DURATION || '900000', 10); // 15 minutes
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -47,8 +45,8 @@ export async function registerUser(data: RegisterInput): Promise<AuthResult> {
       return { success: false, error: 'User with this email already exists' };
     }
 
-    // Hash password
-    const hashedPassword = await hash(password, 10);
+    // Hash password with enhanced security
+    const hashedPassword = await hash(password, BCRYPT_ROUNDS);
 
     // Create user
     const user = await prisma.user.create({

@@ -9,9 +9,9 @@ import { authOptions } from '@/api/auth/[...nextauth]/route';
 // GET /api/categories/:id
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const { id } = await params;
     // Get the current user from the session
     const session = await getServerSession(authOptions);
-    const id = await params.id;
     if (!session || !session.user) {
       return NextResponse.json(
         {

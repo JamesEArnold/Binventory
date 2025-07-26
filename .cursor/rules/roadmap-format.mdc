@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+<rule>
+name: roadmap_format
+description: Ensures consistent roadmap documentation format following project standards
+filters:
+  - type: file_extension
+    pattern: "\\.md$"
+  - type: file_path
+    pattern: "docs/ROADMAP(\\.md)?$"
+  - type: event
+    pattern: "file_update|file_create"
+
+actions:
+  - type: suggest
+    message: |
+      # Roadmap Documentation Standards
+
+      Please follow these formatting guidelines for the project roadmap:
+
+      ## Document Structure
+
+      1. **Project Title and Overview**: Start with a level-1 heading containing the project name followed by "Roadmap", then a brief project overview section
+      
+      2. **System Architecture Overview**: Include a section describing the technology stack with bullet points for each component
+      
+      3. **Implementation Phases**: Organize work into numbered phases with clear hierarchy:
+         - Level-2 headings for major phases (e.g., "## Phase 1: Core Infrastructure")
+         - Level-3 headings for subphases (e.g., "### Phase 1.1: Database Schema")
+         - Include a "Context" section explaining the purpose of each phase
+         - Include standardized metadata fields:
+           - Implementation Priority: (High/Medium/Low)
+           - Dependencies: (List of prerequisite phases)
+           - Status: (Completed/In Progress/Planned)
+           - Technical Stack: (List of relevant technologies)
+
+      4. **Implementation Details**:
+         - Use numbered lists for implementation components
+         - Include code examples in typescript/javascript where relevant
+         - For completed items, include actual file locations and implementation details
+         - Structure: Location → Implementation → Key Features → Reference
+
+      5. **Success Criteria**: Define measurable outcomes that indicate successful completion
+
+      6. **Technical Standards**: Include a section on API formats, error handling, and code organization
+
+      ## Formatting Requirements
+
+      1. Use Markdown heading levels consistently:
+         - Level 1 (`#`) for document title
+         - Level 2 (`##`) for major sections
+         - Level 3 (`###`) for phases
+         - Level 4 (`####`) for subphases
+
+      2. Format code blocks with appropriate language tags:
+      ```typescript
+      interface Example {
+        property: string;
+      }
+      ```
+
+      3. Status indicators:
+         - Completed phases: Include a checkmark (✓) in the heading
+         - In progress: "(In Progress)" in the heading
+         - Explicitly document completed items with checkboxes: [x]
+
+      4. Implementation section structure:
+         ```
+         **Implementation Tasks**:
+         1. Task description:
+            - Subtask details
+            - Expected outcomes
+            - Technical approach
+
+         **Success Criteria**:
+         - Measurable outcome 1
+         - Measurable outcome 2
+         ```
+
+      5. Maintain a "Completed Items" section for finished work with details
+
+examples:
+  - input: |
+      # Project Roadmap
+      
+      ## Phase 1
+      Some details.
+    
+      ## Phase 2
+      Some more details.
+    output: |
+      # Project Name Roadmap
+
+      ## Project Overview
+      Brief description of the project and its goals.
+
+      ## System Architecture Overview
+      - **Frontend**: Technology used
+      - **Backend**: Technology used
+      - **Database**: Technology used
+
+      ## Implementation Phases
+
+      ### Phase 1: Core Infrastructure
+      **Context**: Description of this phase's purpose
+      - Implementation Priority: High
+      - Dependencies: None
+      - Status: Completed
+      - Technical Stack:
+        - Technology 1
+        - Technology 2
+
+      **Implementation Tasks**:
+      1. Implement feature X:
+         - Create database models
+         - Build API endpoints
+         - Develop UI components
+         
+      **Success Criteria**:
+      - Feature X works as expected
+      - Performance metrics meet targets
+
+      ### Phase 2: Extended Functionality
+      **Context**: Description of this phase's purpose
+      - Implementation Priority: Medium
+      - Dependencies: Phase 1
+      - Status: In Progress
+      - Technical Stack:
+        - Technology 3
+        - Technology 4
+
+metadata:
+  priority: medium
+  version: 1.0
+  author: Binventory Team
+</rule>
