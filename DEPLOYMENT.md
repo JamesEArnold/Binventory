@@ -24,13 +24,16 @@ This guide walks you through deploying Binventory using the completely free stac
    - Go to Settings > API
    - Copy the Project URL and anon public key
 
-3. **Run Database Migrations**
+3. **Database Migrations** (Automated)
+   - Migrations are automatically run during Vercel deployment
+   - No manual migration steps required
+   - If you need to run migrations manually for testing:
    ```bash
    # Update DATABASE_URL in .env
    DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@[YOUR-PROJECT-REF].pooler.supabase.com:6543/postgres?schema=public"
    
-   # Run migrations
-   npm run prisma:migrate
+   # Run migrations manually (optional)
+   npm run prisma:deploy
    ```
 
 ## Step 2: Set Up Cloudflare R2 Storage
@@ -86,6 +89,7 @@ This guide walks you through deploying Binventory using the completely free stac
 3. **Deploy**
    - Click "Deploy"
    - Vercel will automatically build and deploy your application
+   - Database migrations will run automatically during the build process
 
 ## Step 4: Initialize Search Indices
 
@@ -131,8 +135,9 @@ After deployment, you need to populate the search vectors:
 ### Common Issues
 
 1. **Database Connection Issues**
-   - Ensure your DATABASE_URL is correct
+   - Ensure your DATABASE_URL is correct in Vercel environment variables
    - Check that your Supabase project is not paused (free tier pauses after 7 days of inactivity)
+   - If migrations fail during deployment, check Vercel build logs for details
 
 2. **Search Not Working**
    - Verify search vectors are populated
