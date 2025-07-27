@@ -10,7 +10,6 @@ node_modules
 .env.production.local
 
 # Database
-prisma/migrations/
 *.db
 *.sqlite
 
