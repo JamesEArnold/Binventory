@@ -38,11 +38,14 @@ export function useAuth() {
         return { success: false, error: result.error };
       }
 
-      if (callbackUrl) {
-        router.push(callbackUrl);
+      if (result?.ok) {
+        // Redirect to callback URL or home page
+        const redirectUrl = callbackUrl && callbackUrl !== '/login' ? callbackUrl : '/';
+        router.push(redirectUrl);
+        return { success: true };
       }
 
-      return { success: true };
+      return { success: false, error: 'Login failed' };
     } catch {
       console.error('Login error occurred');
       return { success: false, error: 'An unexpected error occurred' };
