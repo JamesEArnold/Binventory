@@ -7,12 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { z } from 'zod';
-import twoFactorService from '../../../../services/twoFactor';
-import auditLogService, { AuditAction, AuditEntity } from '../../../../services/auditLog';
-import { authOptions } from '../../[...nextauth]/route';
+import twoFactorService from '@/services/twoFactor';
+import { auditLogger, AuditAction } from '@/lib/audit-logger';
+import { authOptions } from '../[...nextauth]/route';
+
+// Ensure this API route runs in Node.js runtime (required for crypto and bcrypt)
+export const runtime = 'nodejs';
 
 // Validation schemas
-const setupTwoFactorSchema = z.object({});
 const verifyTwoFactorSchema = z.object({
   token: z.string().length(6).regex(/^\d+$/),
 });
@@ -49,18 +51,16 @@ export async function POST(request: NextRequest) {
     const result = await twoFactorService.generateTOTPSecret({ userId });
 
     // Log the 2FA setup attempt
-    await auditLogService.createAuditLog({
+    await auditLogger.logAuth(
+      AuditAction.USER_2FA_ENABLE,
       userId,
-      action: AuditAction.TWO_FACTOR_ENABLE,
-      entity: AuditEntity.USER,
-      entityId: userId,
       ipAddress,
       userAgent,
-      metadata: {
+      {
         success: result.success,
         error: result.error,
-      },
-    });
+      }
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -115,18 +115,16 @@ export async function PUT(request: NextRequest) {
     });
 
     // Log the 2FA verification attempt
-    await auditLogService.createAuditLog({
+    await auditLogger.logAuth(
+      AuditAction.USER_2FA_ENABLE,
       userId,
-      action: AuditAction.TWO_FACTOR_VERIFY,
-      entity: AuditEntity.USER,
-      entityId: userId,
       ipAddress,
       userAgent,
-      metadata: {
+      {
         success: result.success,
         error: result.error,
-      },
-    });
+      }
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -177,24 +175,22 @@ export async function DELETE(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const { confirm } = disableTwoFactorSchema.parse(body);
+    disableTwoFactorSchema.parse(body); // Validate confirm field
 
     // Disable 2FA
     const result = await twoFactorService.disableTwoFactor(userId);
 
     // Log the 2FA disable attempt
-    await auditLogService.createAuditLog({
+    await auditLogger.logAuth(
+      AuditAction.USER_2FA_DISABLE,
       userId,
-      action: AuditAction.TWO_FACTOR_DISABLE,
-      entity: AuditEntity.USER,
-      entityId: userId,
       ipAddress,
       userAgent,
-      metadata: {
+      {
         success: result.success,
         error: result.error,
-      },
-    });
+      }
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -226,7 +222,7 @@ export async function DELETE(request: NextRequest) {
 /**
  * Get 2FA status
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get authenticated user
     const session = await getServerSession(authOptions);
@@ -293,19 +289,18 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Log the recovery code usage
-    await auditLogService.createAuditLog({
+    await auditLogger.logAuth(
+      AuditAction.USER_2FA_ENABLE,
       userId,
-      action: AuditAction.TWO_FACTOR_RECOVERY,
-      entity: AuditEntity.USER,
-      entityId: userId,
       ipAddress,
       userAgent,
-      metadata: {
+      {
         success: result.success,
         error: result.error,
         remainingCodes: result.recoveryCodes?.length,
-      },
-    });
+        action: 'recovery_code_used',
+      }
+    );
 
     if (!result.success) {
       return NextResponse.json(

@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { categoryService } from '../route';
+import { createCategoryService } from '@/services/category';
 import { ApiResponse } from '@/types/api';
 import { Category } from '@prisma/client';
 import { isAppError } from '@/utils/errors';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/api/auth/[...nextauth]/route';
 
+const categoryService = createCategoryService();
+
 // GET /api/categories/:id
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // Get the current user from the session
     const session = await getServerSession(authOptions);
-    const id = await params.id;
     if (!session || !session.user) {
       return NextResponse.json(
         {
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT /api/categories/:id
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
@@ -86,7 +88,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       );
     }
 
-    const category = await categoryService.update(params.id, body, userId);
+    const { id } = await params;
+    const category = await categoryService.update(id, body, userId);
 
     const response: ApiResponse<Category> = {
       success: true,
@@ -111,7 +114,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/categories/:id
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
@@ -129,7 +132,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const userId = session.user.id;
-    await categoryService.delete(params.id, userId);
+    const { id } = await params;
+    await categoryService.delete(id, userId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

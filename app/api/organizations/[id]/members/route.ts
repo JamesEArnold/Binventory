@@ -18,9 +18,11 @@ const addMemberSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -34,7 +36,7 @@ export async function GET(
     }
     
     const organizationWithMembers = await organizationService.listOrganizationMembers(
-      params.id,
+      id,
       session.user.id
     );
     
@@ -73,9 +75,11 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -95,7 +99,7 @@ export async function POST(
       const validatedData = addMemberSchema.parse(body);
       
       const organizationWithMembers = await organizationService.addOrganizationMember(
-        params.id,
+        id,
         validatedData as AddOrganizationMemberData,
         session.user.id
       );

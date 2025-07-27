@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { updateUserProfile, changePassword } from '../services/auth';
+import { updateUserProfile, changePassword } from '../lib/api-client';
 
 export default function ProfilePage() {
   const { user, isLoading, logout } = useAuth();

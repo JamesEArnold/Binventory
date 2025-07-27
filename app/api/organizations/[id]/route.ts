@@ -21,9 +21,11 @@ const updateOrganizationSchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -37,7 +39,7 @@ export async function GET(
     }
     
     const organization = await organizationService.getOrganization(
-      params.id,
+      id,
       session.user.id
     );
     
@@ -76,9 +78,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -98,7 +102,7 @@ export async function PATCH(
       const validatedData = updateOrganizationSchema.parse(body);
       
       const organization = await organizationService.updateOrganization(
-        params.id,
+        id,
         validatedData as UpdateOrganizationData,
         session.user.id
       );
@@ -151,9 +155,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -167,7 +173,7 @@ export async function DELETE(
     }
     
     await organizationService.deleteOrganization(
-      params.id,
+      id,
       session.user.id
     );
     

@@ -9,7 +9,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const binService = createBinService();
+const binService = createBinService();
 
 // GET /api/bins
 export async function GET(request: NextRequest) {

@@ -7,9 +7,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { OrganizationSwitcher } from '../organization/OrganizationSwitcher';
 
 export function Navigation() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,7 +56,7 @@ export function Navigation() {
   }, []);
 
   return (
-    <nav className="bg-white border-b border-gray-200">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
@@ -64,6 +66,9 @@ export function Navigation() {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex ml-10 items-center space-x-4">
+              {/* Organization Switcher */}
+              {isAuthenticated && <OrganizationSwitcher />}
+              
               <Link 
                 href="/bins" 
                 className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -152,7 +157,8 @@ export function Navigation() {
               </svg>
             </Link>
             
-            {/* Notification Button */}
+            {/* Notification Button - Commented out until functionality is implemented */}
+            {/*
             <button 
               type="button" 
               className="ml-3 relative rounded-full bg-gray-100 p-1 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -175,6 +181,7 @@ export function Navigation() {
                 3
               </span>
             </button>
+            */}
             
             {/* Profile Menu */}
             {isAuthenticated ? (
@@ -189,10 +196,12 @@ export function Navigation() {
                 >
                   <span className="sr-only">Open user menu</span>
                   {user?.image ? (
-                    <img
+                    <Image
                       className="h-8 w-8 rounded-full"
                       src={user.image}
                       alt={`${user.name || 'User'}'s profile picture`}
+                      width={32}
+                      height={32}
                     />
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
@@ -291,103 +300,113 @@ export function Navigation() {
         
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-3 pb-4 space-y-3">
-            <form onSubmit={handleSearch} className="relative px-2">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
-                <svg 
-                  className="w-5 h-5 text-gray-400" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24" 
-                  xmlns="http://www.w3.org/2000/svg"
+          <div className="md:hidden">
+            <div className="bg-white pb-3 pt-2 sm:px-3">
+              {/* Mobile Search */}
+              <form onSubmit={handleSearch} className="relative px-2 mb-3">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
+                  <svg 
+                    className="w-5 h-5 text-gray-400" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth="2" 
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <input 
+                  type="search" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Search items, bins..." 
+                />
+              </form>
+              
+              <div className="space-y-1">
+                {/* Mobile Context Indicator */}
+                {isAuthenticated && (
+                  <div className="px-4 py-2 border-b border-gray-200">
+                    <OrganizationSwitcher />
+                  </div>
+                )}
+                
+                <Link
+                  href="/bins"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth="2" 
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                  Bins
+                </Link>
+                
+                <Link
+                  href="/items"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Items
+                </Link>
+                
+                <Link
+                  href="/categories"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Categories
+                </Link>
+                
+                {isAdmin && (
+                  <Link 
+                    href="/admin" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                )}
+                
+                {isAuthenticated && (
+                  <>
+                    <div className="border-t border-gray-200 my-2"></div>
+                    <Link 
+                      href="/profile" 
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Your Profile
+                    </Link>
+                    <Link 
+                      href="/profile/security" 
+                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Security Settings
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-100"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                )}
+                
+                {!isAuthenticated && (
+                  <Link 
+                    href="/login" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                )}
               </div>
-              <input 
-                type="search" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                placeholder="Search items, bins..." 
-              />
-            </form>
-            
-            <div className="space-y-1 px-2">
-              <Link 
-                href="/bins" 
-                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Bins
-              </Link>
-              
-              <Link 
-                href="/items" 
-                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Items
-              </Link>
-              
-              <Link 
-                href="/categories" 
-                className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Categories
-              </Link>
-              
-              {isAdmin && (
-                <Link 
-                  href="/admin" 
-                  className="block px-3 py-2 rounded-md text-sm font-medium text-indigo-600 hover:bg-indigo-50"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Admin
-                </Link>
-              )}
-              
-              {isAuthenticated && (
-                <>
-                  <div className="border-t border-gray-200 my-2"></div>
-                  <Link 
-                    href="/profile" 
-                    className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Your Profile
-                  </Link>
-                  <Link 
-                    href="/profile/security" 
-                    className="block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Security Settings
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-gray-100"
-                  >
-                    Sign out
-                  </button>
-                </>
-              )}
-              
-              {!isAuthenticated && (
-                <Link 
-                  href="/login" 
-                  className="block px-3 py-2 rounded-md text-sm font-medium text-blue-600 hover:bg-blue-50"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign in
-                </Link>
-              )}
             </div>
           </div>
         )}

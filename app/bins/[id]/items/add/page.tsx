@@ -59,7 +59,7 @@ async function getAllCategories() {
   return categories;
 }
 
-export default async function AddItemToBinPage({ params }: { params: { id: string } }) {
+export default async function AddItemToBinPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   
   // Fetch bin

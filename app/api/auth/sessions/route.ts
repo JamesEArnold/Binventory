@@ -31,7 +31,7 @@ const extendSessionSchema = z.object({
 /**
  * Get all active sessions for the current user
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get authenticated user
     const session = await getServerSession(authOptions);
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const { currentSessionId, confirm } = revokeAllSessionsSchema.parse(body);
+    const { currentSessionId } = revokeAllSessionsSchema.parse(body);
 
     // Revoke all other sessions
     const result = await sessionService.revokeAllSessions(
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: result.message,
+      message: 'All sessions revoked successfully',
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -246,7 +246,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: result.message,
+      message: 'Session extended successfully',
       session: result.session,
     });
   } catch (error) {

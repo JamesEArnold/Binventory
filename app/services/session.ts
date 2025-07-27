@@ -31,7 +31,12 @@ export type CreateSessionDetailsInput = z.infer<typeof createSessionDetailsSchem
 
 export type SessionResult = {
   success: boolean;
-  session?: any;
+  session?: {
+    id: string;
+    sessionToken: string;
+    userId: string;
+    expires: Date;
+  };
   error?: string;
 };
 
@@ -110,7 +115,6 @@ export async function revokeSession(
 
     return {
       success: true,
-      message: 'Session revoked successfully',
     };
   } catch (error) {
     console.error('Error revoking session:', error);
@@ -143,7 +147,6 @@ export async function revokeAllSessions(
     if (sessions.length === 0) {
       return {
         success: true,
-        message: 'No other active sessions found',
       };
     }
 
@@ -172,7 +175,6 @@ export async function revokeAllSessions(
 
     return {
       success: true,
-      message: `Successfully revoked ${sessions.length} sessions`,
     };
   } catch (error) {
     console.error('Error revoking all sessions:', error);
@@ -223,6 +225,12 @@ export async function extendSession(
       data: {
         expires: newExpiry,
       },
+      select: {
+        id: true,
+        sessionToken: true,
+        userId: true,
+        expires: true,
+      },
     });
 
     // Log the session extension
@@ -233,15 +241,14 @@ export async function extendSession(
       entityId: sessionId,
       ipAddress,
       metadata: {
-        previousExpiry: session.expires,
-        newExpiry,
+        previousExpiry: session.expires.toISOString(),
+        newExpiry: newExpiry.toISOString(),
       },
     });
 
     return {
       success: true,
       session: updatedSession,
-      message: `Session extended by ${hours} hours`,
     };
   } catch (error) {
     console.error('Error extending session:', error);
@@ -312,7 +319,7 @@ export async function trackSuspiciousActivity(
         userAgent,
         metadata: {
           suspicious: true,
-          reasons: result.reasons,
+          reasons: result.reasons.join(', '),
         },
       });
     }
@@ -348,14 +355,13 @@ export async function cleanupExpiredSessions(): Promise<SessionResult> {
         entity: AuditEntity.SYSTEM,
         metadata: {
           count: result.count,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         },
       });
     }
 
     return {
       success: true,
-      message: `Cleaned up ${result.count} expired sessions`,
     };
   } catch (error) {
     console.error('Error cleaning up expired sessions:', error);

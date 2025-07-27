@@ -147,7 +147,9 @@ export async function POST(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || undefined,
       metadata: {
         action: 'export',
-        filters,
+        userId: filters.userId || null,
+        startDate: filters.startDate?.toISOString() || null,
+        endDate: filters.endDate?.toISOString() || null,
         count: logs.length,
       },
     });
@@ -183,7 +185,7 @@ export async function DELETE(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const { olderThan, confirm } = clearLogsSchema.parse(body);
+    const { olderThan } = clearLogsSchema.parse(body);
 
     // Clear old logs
     const result = await auditLogService.clearOldAuditLogs(olderThan);
@@ -205,7 +207,7 @@ export async function DELETE(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || undefined,
       metadata: {
         action: 'clear',
-        olderThan,
+        olderThan: olderThan.toISOString(),
       },
     });
 

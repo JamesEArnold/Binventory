@@ -107,7 +107,7 @@ export async function requestRecovery(
       userAgent,
       metadata: {
         email: user.email,
-        expires,
+        expires: expires.toISOString(),
       },
     });
 

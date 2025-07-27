@@ -62,10 +62,9 @@ export interface UpdateOrganizationMemberData {
 /**
  * Context type for specifying the scope of operations
  */
-export interface OperationContext {
-  type: 'personal' | 'organization';
-  id?: string; // organizationId for organization context
-}
+export type OperationContext = 
+  | { type: 'personal'; skipNavigation?: boolean }
+  | { type: 'organization'; id: string; skipNavigation?: boolean };
 
 /**
  * Export OrgRole enum from Prisma for easy access

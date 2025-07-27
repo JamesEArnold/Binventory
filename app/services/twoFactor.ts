@@ -4,13 +4,11 @@
  * @dependencies Phase 6.1: Core Authentication System
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { z } from 'zod';
-
-const prisma = new PrismaClient();
 
 // Database schema extension - will be added via migration
 // model TwoFactorAuth {

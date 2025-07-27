@@ -9,8 +9,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Export service for testing
-export const itemService = createItemService();
+// Internal service instance  
+const itemService = createItemService();
 
 // GET /api/items
 export async function GET(request: NextRequest) {

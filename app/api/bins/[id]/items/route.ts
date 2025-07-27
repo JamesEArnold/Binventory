@@ -36,8 +36,9 @@ function createBinItemsRouteHandlers() {
   }
 
   // Handler for getting items in a bin
-  async function getItemsHandler(req: NextRequest, { params }: { params: { id: string } }) {
+  async function getItemsHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {
+      const params = await context.params;
       const binId = params.id;
       
       // Check if bin exists
@@ -80,8 +81,9 @@ function createBinItemsRouteHandlers() {
   }
 
   // Handler for adding an item to a bin
-  async function addItemHandler(req: NextRequest, { params }: { params: { id: string } }) {
+  async function addItemHandler(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {
+      const params = await context.params;
       const binId = params.id;
       
       // Check if bin exists

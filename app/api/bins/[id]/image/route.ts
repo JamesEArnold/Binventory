@@ -7,6 +7,8 @@ import { createBinService } from '@/services/bin';
 import { createAppError } from '@/utils/errors';
 import { storageService } from '@/services/storage';
 import { checkS3Connectivity } from '@/lib/s3';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/api/auth/[...nextauth]/route';
 
 // Define a type for our custom error
 interface AppError extends Error {
@@ -23,9 +25,10 @@ const binService = createBinService();
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const binId = params.id;
     console.log(`Processing image upload for bin: ${binId}`);
     
@@ -44,8 +47,25 @@ export async function POST(
       );
     }
     
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    
     // Check if bin exists
-    const bin = await binService.get(binId);
+    const bin = await binService.get(binId, userId);
     console.log(`Found bin: ${bin.label}`);
     
     // Get the form data
@@ -77,7 +97,7 @@ export async function POST(
     const updatedBin = await binService.update(binId, {
       imageUrl: uploadResult.url,
       imageKey: uploadResult.key,
-    });
+    }, userId);
     console.log('Bin updated with new image information');
     
     return NextResponse.json({
@@ -119,14 +139,32 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const binId = params.id;
     console.log(`Processing image deletion for bin: ${binId}`);
     
+    // Get the current user from the session
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        },
+        { status: 401 }
+      );
+    }
+
+    const userId = session.user.id;
+    
     // Check if bin exists
-    const bin = await binService.get(binId);
+    const bin = await binService.get(binId, userId);
     
     if (!bin.imageUrl || !bin.imageKey) {
       console.log(`No image found for bin: ${binId}`);
@@ -151,7 +189,7 @@ export async function DELETE(
     await binService.update(binId, {
       imageUrl: null,
       imageKey: null,
-    });
+    }, userId);
     console.log('Bin updated to remove image references');
     
     return NextResponse.json({

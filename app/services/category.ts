@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { Category, Prisma } from '@prisma/client';
+import { Category } from '@prisma/client';
 import { createAppError, isAppError } from '../utils/errors';
 
 export interface CategoryService {

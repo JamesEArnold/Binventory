@@ -11,6 +11,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Bin {
@@ -25,6 +26,7 @@ model Bin {
   organizationId  String?   @map("organization_id")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  searchVector    Unsupported("tsvector")? @map("search_vector")
   items           BinItem[]
   qrCodes         QrCode[]
   user            User?     @relation(fields: [userId], references: [id])
@@ -35,6 +37,7 @@ model Bin {
   @@index([location])
   @@index([userId])
   @@index([organizationId])
+  @@index([searchVector], type: Gin, map: "bins_search_vector_idx")
   @@map("bins")
 }
 
@@ -50,6 +53,7 @@ model Item {
   organizationId  String?   @map("organization_id")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  searchVector    Unsupported("tsvector")? @map("search_vector")
   category        Category  @relation(fields: [categoryId], references: [id])
   bins            BinItem[]
   user            User?     @relation(fields: [userId], references: [id])
@@ -59,6 +63,7 @@ model Item {
   @@index([categoryId])
   @@index([userId])
   @@index([organizationId])
+  @@index([searchVector], type: Gin, map: "items_search_vector_idx")
   @@map("items")
 }
 

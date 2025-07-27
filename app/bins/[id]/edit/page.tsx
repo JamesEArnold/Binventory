@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function EditBinPage({ params }: { params: { id: string } }) {
+export default function EditBinPage({ params }: { params: Promise<{ id: string }> }) {
   const [formData, setFormData] = useState({
     label: '',
     location: '',
@@ -22,14 +22,20 @@ export default function EditBinPage({ params }: { params: { id: string } }) {
   const [existingImage, setExistingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [binId, setBinId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const router = useRouter();
-  const binId = params.id;
+  
+  // Extract params
+  useEffect(() => {
+    params.then(({ id }) => setBinId(id));
+  }, [params]);
   
   // Fetch bin data
   useEffect(() => {
+    if (!binId) return;
     const fetchBin = async () => {
       try {
         const response = await fetch(`/api/bins/${binId}`);

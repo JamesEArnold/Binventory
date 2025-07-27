@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createBinService, BinService } from '@/services/bin';
+import { createBinService } from '@/services/bin';
 import { ApiResponse } from '@/types/api';
 import { Bin } from '@/types/models';
 import { isAppError } from '@/utils/errors';
@@ -11,11 +11,11 @@ const defaultBinService = createBinService();
 // GET /api/bins/[id]
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
-  binService: BinService = defaultBinService
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -44,7 +44,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const bin = await binService.get(params.id, userId);
+    const bin = await defaultBinService.get(id, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -71,11 +71,11 @@ export async function GET(
 // PUT /api/bins/[id]
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
-  binService: BinService = defaultBinService
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -121,7 +121,7 @@ export async function PUT(
       );
     }
 
-    const bin = await binService.update(params.id, body, userId);
+    const bin = await defaultBinService.update(id, body, userId);
     const response: ApiResponse<Bin> = {
       success: true,
       data: bin,
@@ -148,11 +148,11 @@ export async function PUT(
 // DELETE /api/bins/[id]
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
-  binService: BinService = defaultBinService
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!params?.id) {
+    const { id } = await params;
+    if (!id) {
       return NextResponse.json(
         {
           success: false,
@@ -182,7 +182,7 @@ export async function DELETE(
 
     const userId = session.user.id;
     
-    await binService.delete(params.id, userId);
+    await defaultBinService.delete(id, userId);
     const response: ApiResponse<null> = {
       success: true,
     };

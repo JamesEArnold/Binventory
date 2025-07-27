@@ -38,13 +38,22 @@ export function useAuth() {
         return { success: false, error: result.error };
       }
 
-      if (callbackUrl) {
-        router.push(callbackUrl);
+      if (result?.ok) {
+        // Wait a bit for the session to be established, then redirect
+        // Default to dashboard (/) unless we have a specific callback URL that's not the login page
+        const redirectUrl = callbackUrl && callbackUrl !== '/login' && callbackUrl !== '/' ? callbackUrl : '/';
+        
+        // Use window.location.href for more reliable redirect after authentication
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 100);
+        
+        return { success: true };
       }
 
-      return { success: true };
-    } catch (error) {
-      console.error('Login error:', error);
+      return { success: false, error: 'Login failed' };
+    } catch {
+      console.error('Login error occurred');
       return { success: false, error: 'An unexpected error occurred' };
     }
   };
