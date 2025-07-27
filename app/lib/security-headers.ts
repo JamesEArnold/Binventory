@@ -61,7 +61,7 @@ export function getSecurityHeaders(config?: SecurityHeadersConfig): Record<strin
   const cspValue = Object.entries(cspDirectives)
     .filter(([, values]) => values !== undefined)
     .map(([directive, values]) => 
-      values.length > 0 ? `${directive} ${values.join(' ')}` : directive
+      values!.length > 0 ? `${directive} ${values!.join(' ')}` : directive
     )
     .join('; ');
 

@@ -4,6 +4,9 @@
  * @dependencies Phase 1.1, Phase 1.2
  */
 
+// Force dynamic rendering since this page requires authentication
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { BinCard } from '../components/bins/BinCard';
 import { prisma } from '../lib/prisma';

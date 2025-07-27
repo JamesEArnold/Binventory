@@ -4,14 +4,10 @@
  * @dependencies PostgreSQL with tsvector support
  */
 
-import { prisma } from '../lib/prisma';
 import { 
   SearchIndices, 
-  TypeaheadConfig,
-  SearchQuery,
-  SearchResult 
+  TypeaheadConfig
 } from '../types/search';
-import { Bin, Item } from '@prisma/client';
 import { createPostgresSearchService } from './search-postgres';
 
 /**

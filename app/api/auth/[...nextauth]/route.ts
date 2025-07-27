@@ -5,6 +5,9 @@ import GithubProvider from "next-auth/providers/github";
 import { PrismaClient, Role } from "@prisma/client";
 import { verifyCredentials } from "../../../services/auth";
 
+// Ensure this API route runs in Node.js runtime (required for bcrypt and Prisma)
+export const runtime = 'nodejs';
+
 // Initialize Prisma client for OAuth user handling
 const prisma = new PrismaClient();
 
@@ -101,7 +104,7 @@ export const authOptions: AuthOptions = {
               token.id = dbUser.id;
               token.role = dbUser.role;
             } else {
-              console.warn(`OAuth user with email ${user.email} not found in database during JWT creation`);
+              console.warn(`OAuth user not found in database during JWT creation`);
             }
           } catch (error) {
             console.error("Error finding user in database during JWT creation:", error);
@@ -145,7 +148,7 @@ export const authOptions: AuthOptions = {
               },
             });
             
-            console.log(`Created new user from ${account.provider} OAuth:`, user.email);
+            console.log(`Created new user from ${account.provider} OAuth: ID ${dbUser.id}`);
           } else {
             // Update existing user with latest OAuth info
             await prisma.user.update({
@@ -182,7 +185,7 @@ export const authOptions: AuthOptions = {
               }
             });
             
-            console.log(`Linked ${account.provider} account for user:`, user.email);
+            console.log(`Linked ${account.provider} account for user ID: ${dbUser.id}`);
           }
         } catch (error) {
           console.error("Error handling OAuth sign-in:", error);
@@ -194,11 +197,11 @@ export const authOptions: AuthOptions = {
   },
   events: {
     async signIn({ user }) {
-      console.log(`User signed in: ${user.email}`);
+      console.log(`User signed in: ${user.id || 'unknown ID'}`);
     },
     async signOut({ session }) {
-      if (session?.user?.email) {
-        console.log(`User signed out: ${session.user.email}`);
+      if (session?.user?.id) {
+        console.log(`User signed out: ${session.user.id}`);
       }
     },
   },

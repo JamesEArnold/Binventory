@@ -7,6 +7,7 @@
  */
 
 import { FC, useState, useEffect } from 'react';
+import Image from 'next/image';
 
 export interface PrintButtonProps {
   id: string;
@@ -520,14 +521,17 @@ export const PrintButton: FC<PrintButtonProps> = ({
                             padding: '2px',
                             backgroundColor: 'white',
                           }}>
-                            <img 
+                            <Image 
                               src={qrCodeUrl}
                               alt="QR code preview"
+                              width={64}
+                              height={64}
                               style={{
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'contain'
                               }}
+                              unoptimized
                             />
                           </div>
                           <div style={{

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * @description BinCard component implementation from Phase 3.1: Core Web Interface
  * @phase Core Web Interface

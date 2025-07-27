@@ -2,7 +2,21 @@ import { createPostgresSearchService } from '../search-postgres';
 import { SearchIndices, TypeaheadConfig } from '@/types/search';
 
 // Mock Prisma client
-const mockPrismaClient = {
+interface MockPrismaClient {
+  $queryRaw: jest.MockedFunction<(sql: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>>;
+  $queryRawUnsafe: jest.MockedFunction<(sql: string, ...values: unknown[]) => Promise<unknown>>;
+  $executeRaw: jest.MockedFunction<(sql: TemplateStringsArray, ...values: unknown[]) => Promise<number>>;
+  bin: {
+    update: jest.MockedFunction<(args: { where: { id: string }; data: { searchVector?: string } }) => Promise<{ id: string }>>;
+    findMany: jest.MockedFunction<(args?: { where?: Record<string, unknown>; take?: number }) => Promise<unknown[]>>;
+  };
+  item: {
+    update: jest.MockedFunction<(args: { where: { id: string }; data: { searchVector?: string } }) => Promise<{ id: string }>>;
+    findMany: jest.MockedFunction<(args?: { where?: Record<string, unknown>; take?: number }) => Promise<unknown[]>>;
+  };
+}
+
+const mockPrismaClient: MockPrismaClient = {
   $queryRaw: jest.fn(),
   $queryRawUnsafe: jest.fn(),
   $executeRaw: jest.fn(),
@@ -14,7 +28,7 @@ const mockPrismaClient = {
     update: jest.fn(),
     findMany: jest.fn(),
   },
-} as any;
+};
 
 describe('PostgresSearchService', () => {
   let searchService: ReturnType<typeof createPostgresSearchService>;
@@ -144,7 +158,7 @@ describe('PostgresSearchService', () => {
       });
 
       it('should call search for valid query', async () => {
-        const mockBinResults: any[] = [];
+        const mockBinResults: Array<{ id: string; type: string; rank: number }> = [];
         const mockItemResults = [
           { id: 'item1', name: 'Test Item', type: 'item', rank: 0.9 }
         ];

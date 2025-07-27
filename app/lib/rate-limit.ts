@@ -30,7 +30,7 @@ class RateLimiter {
 
   private cleanup() {
     const now = Date.now();
-    for (const [key, entry] of this.requests.entries()) {
+    for (const [key, entry] of Array.from(this.requests.entries())) {
       if (now > entry.resetTime) {
         this.requests.delete(key);
       }
@@ -151,7 +151,7 @@ export async function rateLimit(
   identifier: string
 ): Promise<{ allowed: boolean; headers: Record<string, string> }> {
   const result = await limiter.check(identifier);
-  const headers = getRateLimitHeaders(result);
+  const headers: Record<string, string> = getRateLimitHeaders(result);
 
   if (!result.allowed) {
     headers['Retry-After'] = Math.ceil((result.resetTime - Date.now()) / 1000).toString();

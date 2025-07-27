@@ -43,8 +43,8 @@ export function useAuth() {
       }
 
       return { success: true };
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch {
+      console.error('Login error occurred');
       return { success: false, error: 'An unexpected error occurred' };
     }
   };

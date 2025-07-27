@@ -19,8 +19,8 @@ import { OrganizationSettings } from '@/components/organization/OrganizationSett
 
 type TabType = 'members' | 'settings';
 
-export default function OrganizationPage({ params }: { params: Promise<{ id: string }> | { id: string } }) {
-  const unwrappedParams = use(params as Promise<{ id: string }>);
+export default function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = use(params);
   const { id: organizationId } = unwrappedParams;
   const [activeTab, setActiveTab] = useState<TabType>('members');
   const [loading, setLoading] = useState(true);
@@ -75,7 +75,6 @@ export default function OrganizationPage({ params }: { params: Promise<{ id: str
           initialLoadCompleted.current = true;
         });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, organizationId, refreshOrganizations]);
 
   if (!isAuthenticated) {

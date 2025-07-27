@@ -4,30 +4,76 @@
  * @dependencies Phase 1.1, Phase 1.2
  */
 
+'use client';
+
 import Link from 'next/link';
-import { prisma } from '../lib/prisma';
-import { requireAuth } from '../lib/auth';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { Item, Category } from '@prisma/client';
 
-// Fetch items with their categories
-async function getItemsWithCategories(userId: string) {
-  const items = await prisma.item.findMany({
-    where: { userId },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      name: 'asc'
+type ItemWithCategory = Item & {
+  category: Category | null;
+};
+
+export default function ItemsPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [items, setItems] = useState<ItemWithCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
     }
-  });
-  
-  return items;
-}
 
-export default async function ItemsPage() {
-  // Ensure user is authenticated
-  const user = await requireAuth();
-  
-  const items = await getItemsWithCategories(user.id);
+    async function fetchItems() {
+      try {
+        const response = await fetch('/api/items');
+        if (!response.ok) {
+          throw new Error('Failed to fetch items');
+        }
+        const data = await response.json();
+        if (data.success) {
+          setItems(data.data);
+        } else {
+          throw new Error(data.error?.message || 'Failed to fetch items');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchItems();
+  }, [user, authLoading]);
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="flex justify-center items-center min-h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">

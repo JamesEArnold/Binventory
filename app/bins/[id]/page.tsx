@@ -76,7 +76,7 @@ function isUrlExpired(url: string): boolean {
   }
 }
 
-export default async function BinDetailPage({ params }: { params: { id: string } }) {
+export default async function BinDetailPage({ params }: { params: Promise<{ id: string }> }) {
   // Ensure user is authenticated
   await requireAuth();
   
@@ -210,10 +210,13 @@ export default async function BinDetailPage({ params }: { params: { id: string }
               <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Access</h2>
               <div className="flex items-center justify-center sm:justify-start">
                 <div className="inline-block bg-white p-4 border border-gray-200 rounded-lg">
-                  <img 
+                  <Image 
                     src={`/api/qr/image/${bin.id}`} 
                     alt={`QR code for ${bin.label}`}
+                    width={128}
+                    height={128}
                     className="h-32 w-32 object-contain"
+                    unoptimized
                   />
                   <div className="mt-2 text-center text-sm text-gray-500">
                     Scan to access this bin

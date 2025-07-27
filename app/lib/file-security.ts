@@ -275,12 +275,12 @@ async function performSecurityChecks(
     
     // Look for script tags or JavaScript
     if (/<script/i.test(content) || /javascript:/i.test(content)) {
-      return { safe: false, reason: 'Embedded script detected in image' };
+      return { safe: false, reason: `Embedded script detected in image file: ${fileName}` };
     }
     
     // Look for PHP code
     if (/<\?php/i.test(content)) {
-      return { safe: false, reason: 'Embedded PHP code detected' };
+      return { safe: false, reason: `Embedded PHP code detected in file: ${fileName}` };
     }
   }
   
@@ -290,7 +290,7 @@ async function performSecurityChecks(
     
     // Look for HTML/XML declarations
     if (mimeType.startsWith('image/') && (/<html/i.test(header) || /<xml/i.test(header))) {
-      return { safe: false, reason: 'HTML/XML content detected in image file' };
+      return { safe: false, reason: `HTML/XML content detected in image file: ${fileName}` };
     }
   }
   
@@ -370,10 +370,10 @@ export async function processUploadedFile(
     }
     
     // Process file
-    let buffer = Buffer.from(await file.arrayBuffer());
+    let buffer: Buffer = Buffer.from(new Uint8Array(await file.arrayBuffer()));
     
     // Strip EXIF data if configured
-    if (config.stripExifData && validation.detectedMimeType?.startsWith('image/')) {
+    if ('stripExifData' in config && config.stripExifData && validation.detectedMimeType?.startsWith('image/')) {
       buffer = await stripExifData(buffer, validation.detectedMimeType);
     }
     

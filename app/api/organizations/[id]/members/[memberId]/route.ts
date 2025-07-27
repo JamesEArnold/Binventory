@@ -17,9 +17,11 @@ const updateMemberSchema = z.object({
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id, memberId } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -39,8 +41,8 @@ export async function PATCH(
       const validatedData = updateMemberSchema.parse(body);
       
       const organizationWithMembers = await organizationService.updateOrganizationMember(
-        params.id,
-        params.memberId,
+        id,
+        memberId,
         validatedData as UpdateOrganizationMemberData,
         session.user.id
       );
@@ -93,9 +95,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; memberId: string } }
+  { params }: { params: Promise<{ id: string; memberId: string }> }
 ): Promise<NextResponse> {
   try {
+    const { id, memberId } = await params;
+    
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.id) {
@@ -109,8 +113,8 @@ export async function DELETE(
     }
     
     await organizationService.removeOrganizationMember(
-      params.id,
-      params.memberId,
+      id,
+      memberId,
       session.user.id
     );
     

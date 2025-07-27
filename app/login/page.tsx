@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 import { signIn } from 'next-auth/react';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,9 +28,9 @@ export default function LoginPage() {
       if (!result.success) {
         setError(result.error || 'Login failed');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
-      console.error(err);
+      console.error('Login form submission error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -40,8 +40,8 @@ export default function LoginPage() {
     try {
       setIsOAuthLoading(provider);
       await signIn(provider, { callbackUrl });
-    } catch (error) {
-      console.error(`Error signing in with ${provider}:`, error);
+    } catch {
+      console.error(`Error signing in with ${provider}`);
       setError(`Failed to sign in with ${provider}`);
       setIsOAuthLoading(null);
     }
@@ -182,5 +182,25 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoginPageFallback() {
+  return (
+    <div className="min-h-screen flex justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginForm />
+    </Suspense>
   );
 } 

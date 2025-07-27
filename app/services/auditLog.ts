@@ -65,7 +65,7 @@ export const createAuditLogSchema = z.object({
   entityId: z.string().optional(),
   ipAddress: z.string().optional(),
   userAgent: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export type CreateAuditLogInput = z.infer<typeof createAuditLogSchema>;
@@ -130,7 +130,12 @@ export async function getAuditLogs({
     const skip = (page - 1) * limit;
     
     // Build the filter conditions
-    const where: any = {};
+    const where: {
+      userId?: string;
+      action?: AuditAction;
+      entity?: AuditEntity;
+      createdAt?: { gte?: Date; lte?: Date };
+    } = {};
     
     if (userId) {
       where.userId = userId;
@@ -299,7 +304,12 @@ export async function exportAuditLogs(
 ) {
   try {
     // Build the filter conditions
-    const where: any = {};
+    const where: {
+      userId?: string;
+      action?: AuditAction;
+      entity?: AuditEntity;
+      createdAt?: { gte?: Date; lte?: Date };
+    } = {};
     
     if (filters.userId) {
       where.userId = filters.userId;

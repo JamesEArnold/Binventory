@@ -23,9 +23,11 @@ function validateObjectType(type: string): type is ObjectType {
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { type: string; id: string } }
+  { params }: { params: Promise<{ type: string; id: string }> }
 ) {
   try {
+    const { type, id } = await params;
+    
     // Get authenticated user
     const session = await getSession();
     if (!session?.user) {
@@ -36,15 +38,15 @@ export async function GET(
     }
 
     // Validate object type parameter
-    if (!validateObjectType(params.type)) {
+    if (!validateObjectType(type)) {
       return NextResponse.json(
         { success: false, error: { message: 'Invalid object type' } },
         { status: 400 }
       );
     }
 
-    const objectType = params.type as ObjectType;
-    const objectId = params.id;
+    const objectType = type as ObjectType;
+    const objectId = id;
     const userId = session.user.id;
 
     // Check if user has access to the object

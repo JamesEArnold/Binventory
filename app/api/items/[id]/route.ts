@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { itemService } from '../route';
+import { createItemService } from '@/services/item';
 import { ApiResponse } from '@/types/api';
 import { Item } from '@prisma/client';
 import { isAppError } from '@/utils/errors';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/api/auth/[...nextauth]/route';
 
+const itemService = createItemService();
+
 // GET /api/items/:id
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
@@ -25,7 +27,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const userId = session.user.id;
-    const item = await itemService.get(params.id, userId);
+    const { id } = await params;
+    const item = await itemService.get(id, userId);
 
     const response: ApiResponse<Item> = {
       success: true,
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PATCH /api/items/:id
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
@@ -86,7 +89,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       );
     }
 
-    const item = await itemService.update(params.id, body, userId);
+    const { id } = await params;
+    const item = await itemService.update(id, body, userId);
 
     const response: ApiResponse<Item> = {
       success: true,
@@ -111,7 +115,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE /api/items/:id
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);
@@ -129,7 +133,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const userId = session.user.id;
-    await itemService.delete(params.id, userId);
+    const { id } = await params;
+    await itemService.delete(id, userId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

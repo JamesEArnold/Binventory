@@ -17,14 +17,48 @@ interface PostgresSearchHit {
   id: string;
   type: 'item' | 'bin';
   rank: number;
-  [key: string]: any;
+  label?: string;
+  location?: string;
+  description?: string;
+  name?: string;
+  categoryId?: string | number;
+  quantity?: number;
+  unit?: string;
+  userId?: string | number;
+  organizationId?: string | number;
+  minQuantity?: string | number;
+  [key: string]: string | number | undefined;
+}
+
+interface BinIndexData {
+  id: string;
+  label: string;
+  location?: string;
+  description?: string;
+}
+
+interface ItemIndexData {
+  id: string;
+  name: string;
+  description?: string;
+  categoryId?: string;
+  quantity?: number;
+  unit?: string;
+}
+
+interface SearchFilters {
+  categoryId?: string;
+  category_id?: string;
+  location?: string;
+  unit?: string;
+  quantity?: { min?: number; max?: number };
 }
 
 /**
  * Creates a PostgreSQL-based search service with the same interface as MeiliSearch
  */
 export function createPostgresSearchService(
-  indices: SearchIndices,
+  _indices: SearchIndices,
   typeaheadConfig: TypeaheadConfig,
   prismaClient: PrismaClient = prisma
 ) {
@@ -90,7 +124,7 @@ export function createPostgresSearchService(
   /**
    * Updates or adds a bin document in the search index
    */
-  async function indexBin(bin: any): Promise<void> {
+  async function indexBin(bin: BinIndexData): Promise<void> {
     try {
       // The trigger will automatically update the search vector
       await prismaClient.bin.update({
@@ -110,7 +144,7 @@ export function createPostgresSearchService(
   /**
    * Updates or adds an item document in the search index
    */
-  async function indexItem(item: any): Promise<void> {
+  async function indexItem(item: ItemIndexData): Promise<void> {
     try {
       // The trigger will automatically update the search vector
       await prismaClient.item.update({
@@ -131,14 +165,16 @@ export function createPostgresSearchService(
   /**
    * Deletes a bin from the search index - handled automatically by database
    */
-  async function deleteBin(binId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async function deleteBin(_binId: string): Promise<void> {
     // No-op: deletion is handled by the database when the record is deleted
   }
 
   /**
    * Deletes an item from the search index - handled automatically by database
    */
-  async function deleteItem(itemId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async function deleteItem(_itemId: string): Promise<void> {
     // No-op: deletion is handled by the database when the record is deleted
   }
 
@@ -198,11 +234,11 @@ export function createPostgresSearchService(
   /**
    * Search bins using PostgreSQL full-text search
    */
-  async function searchBins(query: string, filters?: Record<string, any>, limit = 20, offset = 0): Promise<PostgresSearchHit[]> {
+  async function searchBins(query: string, filters?: SearchFilters, limit = 20, offset = 0): Promise<PostgresSearchHit[]> {
     const tsQuery = query.trim().split(/\s+/).map(term => `${term}:*`).join(' & ');
     
     let whereClause = 'WHERE search_vector @@ to_tsquery($1)';
-    const queryParams: any[] = [tsQuery];
+    const queryParams: (string | number)[] = [tsQuery];
     let paramIndex = 2;
     
     // Add filters
@@ -224,7 +260,7 @@ export function createPostgresSearchService(
       LIMIT ${limit} OFFSET ${offset}
     `;
     
-    const results = await prismaClient.$queryRawUnsafe(sqlQuery, ...queryParams) as any[];
+    const results = await prismaClient.$queryRawUnsafe(sqlQuery, ...queryParams) as PostgresSearchHit[];
     
     return results.map(row => ({
       ...row,
@@ -242,11 +278,11 @@ export function createPostgresSearchService(
   /**
    * Search items using PostgreSQL full-text search
    */
-  async function searchItems(query: string, filters?: Record<string, any>, limit = 20, offset = 0): Promise<PostgresSearchHit[]> {
+  async function searchItems(query: string, filters?: SearchFilters, limit = 20, offset = 0): Promise<PostgresSearchHit[]> {
     const tsQuery = query.trim().split(/\s+/).map(term => `${term}:*`).join(' & ');
     
     let whereClause = 'WHERE i.search_vector @@ to_tsquery($1)';
-    const queryParams: any[] = [tsQuery];
+    const queryParams: (string | number)[] = [tsQuery];
     let paramIndex = 2;
     
     // Add filters
@@ -277,7 +313,7 @@ export function createPostgresSearchService(
       LIMIT ${limit} OFFSET ${offset}
     `;
     
-    const results = await prismaClient.$queryRawUnsafe(sqlQuery, ...queryParams) as any[];
+    const results = await prismaClient.$queryRawUnsafe(sqlQuery, ...queryParams) as PostgresSearchHit[];
     
     return results.map(row => ({
       ...row,
@@ -325,6 +361,7 @@ export function createPostgresSearchService(
     deleteBin,
     deleteItem,
     search,
+    searchItems,
     typeahead,
   };
 }

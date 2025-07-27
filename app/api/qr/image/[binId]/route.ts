@@ -19,7 +19,7 @@ const qrService = createQRCodeService(qrConfig, urlConfig);
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { binId: string } }
+  { params }: { params: Promise<{ binId: string }> }
 ) {
   try {
     const { binId } = await params;

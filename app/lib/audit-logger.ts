@@ -64,6 +64,39 @@ export enum AuditAction {
   ADMIN_BULK_DELETE = 'admin.bulk.delete',
 }
 
+// Specific metadata interfaces for different audit event types
+export interface AuthMetadata {
+  loginMethod?: string;
+  failureReason?: string;
+  sessionId?: string;
+  twoFactorUsed?: boolean;
+  rememberMe?: boolean;
+  [key: string]: string | boolean | number | undefined;
+}
+
+export interface DataAccessMetadata {
+  operation?: 'create' | 'read' | 'update' | 'delete';
+  fieldChanged?: string[];
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  searchQuery?: string;
+  resultCount?: number;
+  [key: string]: unknown;
+}
+
+export interface SecurityMetadata {
+  attemptType?: string;
+  blockedReason?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  detectionMethod?: string;
+  additionalInfo?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface GeneralMetadata {
+  [key: string]: string | number | boolean | null | undefined | Record<string, unknown>;
+}
+
 export interface AuditLogEntry {
   action: AuditAction;
   userId?: string;
@@ -71,7 +104,7 @@ export interface AuditLogEntry {
   entityId?: string;
   ipAddress?: string;
   userAgent?: string;
-  metadata?: Record<string, any>;
+  metadata?: AuthMetadata | DataAccessMetadata | SecurityMetadata | GeneralMetadata;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   success?: boolean;
 }
@@ -142,7 +175,7 @@ class AuditLogger {
         entityId: entry.entityId || null,
         ipAddress: entry.ipAddress || null,
         userAgent: entry.userAgent || null,
-        metadata: entry.metadata || null,
+        metadata: entry.metadata ? JSON.parse(JSON.stringify(entry.metadata)) : undefined,
       },
     });
   }
@@ -231,7 +264,7 @@ class AuditLogger {
   /**
    * Log authentication events
    */
-  async logAuth(action: AuditAction, userId?: string, ipAddress?: string, userAgent?: string, metadata?: Record<string, any>): Promise<void> {
+  async logAuth(action: AuditAction, userId?: string, ipAddress?: string, userAgent?: string, metadata?: AuthMetadata): Promise<void> {
     await this.log({
       action,
       userId,
@@ -244,7 +277,7 @@ class AuditLogger {
   /**
    * Log data access events
    */
-  async logDataAccess(action: AuditAction, userId: string, entity: string, entityId: string, ipAddress?: string, metadata?: Record<string, any>): Promise<void> {
+  async logDataAccess(action: AuditAction, userId: string, entity: string, entityId: string, ipAddress?: string, metadata?: DataAccessMetadata): Promise<void> {
     await this.log({
       action,
       userId,
@@ -258,7 +291,7 @@ class AuditLogger {
   /**
    * Log security events
    */
-  async logSecurityEvent(action: AuditAction, ipAddress?: string, userAgent?: string, metadata?: Record<string, any>): Promise<void> {
+  async logSecurityEvent(action: AuditAction, ipAddress?: string, userAgent?: string, metadata?: SecurityMetadata): Promise<void> {
     await this.log({
       action,
       ipAddress,
@@ -282,10 +315,19 @@ class AuditLogger {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = {};
+    const where: {
+      action?: { in: AuditAction[] };
+      userId?: string;
+      entity?: string;
+      entityId?: string;
+      ipAddress?: string;
+      createdAt?: { gte?: Date; lte?: Date };
+      severity?: { in: Array<'low' | 'medium' | 'high' | 'critical'> };
+      success?: boolean;
+    } = {};
     
     if (filters.userId) where.userId = filters.userId;
-    if (filters.action) where.action = filters.action;
+    if (filters.action) where.action = { in: [filters.action] };
     if (filters.entity) where.entity = filters.entity;
     if (filters.entityId) where.entityId = filters.entityId;
     if (filters.ipAddress) where.ipAddress = filters.ipAddress;

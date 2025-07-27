@@ -11,15 +11,13 @@ export const loginSchema = authSchemas.login;
 
 // Password security configuration
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
-const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
-const LOCKOUT_DURATION = parseInt(process.env.LOCKOUT_DURATION || '900000', 10); // 15 minutes
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export type AuthResult = {
   success: boolean;
-  user?: User;
+  user?: UserWithoutPassword;
   error?: string;
 };
 

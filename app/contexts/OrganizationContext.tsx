@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { OrgRole } from '@prisma/client';
 import { OperationContext, OrganizationWithMemberDetails } from '@/types/organization';
@@ -51,38 +51,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Load organizations on auth state change
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchOrganizations();
-    } else {
-      setOrganizations([]);
-      setCurrentOrganization(null);
-      // Don't reset context here to ensure persistence across logins
-    }
-  }, [isAuthenticated]);
-
-  // Update current organization when context changes
-  useEffect(() => {
-    if (context.type === 'organization' && context.id) {
-      const org = organizations.find(o => o.id === context.id) || null;
-      setCurrentOrganization(org);
-      
-      // Set user role in current organization
-      if (org) {
-        const membership = org.memberships.find(m => m.userId === user?.id);
-        setUserRole(membership?.role || null);
-      } else {
-        setUserRole(null);
-      }
-    } else {
-      setCurrentOrganization(null);
-      setUserRole(null);
-    }
-  }, [context, organizations, user]);
-
   // Function to fetch organizations
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async () => {
     if (!isAuthenticated) return;
     
     setIsLoading(true);
@@ -106,7 +76,37 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
+
+  // Load organizations on auth state change
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchOrganizations();
+    } else {
+      setOrganizations([]);
+      setCurrentOrganization(null);
+      // Don't reset context here to ensure persistence across logins
+    }
+  }, [isAuthenticated, fetchOrganizations]);
+
+  // Update current organization when context changes
+  useEffect(() => {
+    if (context.type === 'organization' && context.id) {
+      const org = organizations.find(o => o.id === context.id) || null;
+      setCurrentOrganization(org);
+      
+      // Set user role in current organization
+      if (org) {
+        const membership = org.memberships.find(m => m.userId === user?.id);
+        setUserRole(membership?.role || null);
+      } else {
+        setUserRole(null);
+      }
+    } else {
+      setCurrentOrganization(null);
+      setUserRole(null);
+    }
+  }, [context, organizations, user]);
 
   // Function to switch context
   const switchContext = (newContext: OperationContext) => {
@@ -145,6 +145,9 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
       }
     }
   };
+
+  // Extract context id to avoid complex expression in dependency array
+  const contextId = context.type === 'organization' ? (context as { id: string }).id : undefined;
 
   // Parse organization from URL on initial render and route changes
   useEffect(() => {
@@ -199,7 +202,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     }, 100); // Small delay to allow initial load to complete
     
     return () => clearTimeout(timer);
-  }, [pathname, context.type, context.type === 'organization' ? (context as { id: string }).id : undefined]);
+  }, [pathname, context.type, contextId, context]);
 
   // Load saved context from localStorage on initial render
   useEffect(() => {
@@ -232,7 +235,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         console.error('Failed to load saved context:', e);
       }
     }
-  }, [pathname]);
+  }, [pathname, context]);
 
   const refreshOrganizations = async () => {
     await fetchOrganizations();

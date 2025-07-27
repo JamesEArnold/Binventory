@@ -9,11 +9,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Export service for testing
-export const categoryService = createCategoryService();
+// Internal service instance
+const categoryService = createCategoryService();
 
 // GET /api/categories
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get the current user from the session
     const session = await getServerSession(authOptions);

@@ -1,5 +1,5 @@
 import { Item, Prisma } from '@prisma/client';
-import { createAppError, isAppError, AppError } from '../utils/errors';
+import { createAppError, isAppError } from '../utils/errors';
 import { createSearchService } from './search';
 import { SearchIndicesSchema, TypeaheadConfigSchema } from '../types/search';
 import { prisma } from '../lib/prisma';
@@ -122,8 +122,8 @@ export function createItemService(): ItemService {
 
         // Use search service if search parameter is provided
         if (search && search.trim() !== '') {
-          const searchResults = await searchService.searchItems(search, { limit });
-          const ids = searchResults.hits.map(hit => hit.id);
+          const searchResults = await searchService.searchItems(search, {}, limit);
+          const ids = searchResults.map(hit => hit.id);
           
           // Combine search results with other filters
           where.id = { in: ids };
@@ -302,26 +302,11 @@ export function createItemService(): ItemService {
         let item;
         
         if (data.category_id === '') {
-          // Disconnect category
-          const updateData: Prisma.ItemUpdateInput = {
-            name: data.name !== undefined ? data.name : undefined,
-            description: data.description !== undefined ? data.description : undefined,
-            quantity: data.quantity !== undefined ? data.quantity : undefined,
-            minQuantity: data.min_quantity !== undefined ? 
-              (data.min_quantity === 0 ? null : data.min_quantity) : undefined,
-            unit: data.unit !== undefined ? data.unit : undefined,
-            categoryId: null
-          };
-          
-          // Remove undefined values
-          Object.keys(updateData).forEach(key => 
-            updateData[key] === undefined && delete updateData[key]
-          );
-          
-          item = await prisma.item.update({
-            where: { id },
-            data: updateData,
-            include: { category: true }
+          // Category is required, cannot be empty
+          throw createAppError({
+            code: 'CATEGORY_REQUIRED',
+            message: 'Category is required for all items',
+            httpStatus: 400
           });
         } else if (data.category_id) {
           // Connect to new category
@@ -349,7 +334,7 @@ export function createItemService(): ItemService {
           };
           
           // Remove undefined values
-          Object.keys(updateData).forEach(key => 
+          (Object.keys(updateData) as Array<keyof typeof updateData>).forEach(key => 
             updateData[key] === undefined && delete updateData[key]
           );
           

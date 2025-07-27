@@ -1,6 +1,7 @@
 'use client';
 
 import { FC, useState } from 'react';
+import Image from 'next/image';
 import { OrgRole } from '@prisma/client';
 import { OrganizationWithMemberDetails } from '@/types/organization';
 
@@ -295,10 +296,12 @@ export const OrganizationMembers: FC<OrganizationMembersProps> = ({
                   <div className="flex items-center">
                     <div className="flex-shrink-0 h-10 w-10">
                       {member.user?.image ? (
-                        <img
+                        <Image
                           className="h-10 w-10 rounded-full"
                           src={member.user.image}
                           alt=""
+                          width={40}
+                          height={40}
                         />
                       ) : (
                         <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">

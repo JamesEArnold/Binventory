@@ -21,7 +21,7 @@ const TOKEN_EXPIRY = 15 * 60 * 1000;
 // Cleanup interval (5 minutes)
 setInterval(() => {
   const now = Date.now();
-  for (const [key, token] of tokenStore.entries()) {
+  for (const [key, token] of Array.from(tokenStore.entries())) {
     if (now - token.timestamp > TOKEN_EXPIRY) {
       tokenStore.delete(key);
     }

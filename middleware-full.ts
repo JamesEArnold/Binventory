@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { apiRateLimiter, authRateLimiter, getUserIdentifier, rateLimit } from '@/lib/rate-limit';
 import { getSecurityHeaders, securityConfigs } from '@/lib/security-headers';
+import { checkCSRFProtection } from '@/lib/csrf';
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -23,9 +24,6 @@ const publicRoutes = [
   '/b', // QR code redirect routes
   '/api/auth',
 ];
-
-// State-changing HTTP methods that will require CSRF protection at API level
-const STATE_CHANGING_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -67,10 +65,22 @@ export async function middleware(request: NextRequest) {
       response.headers.set(key, value);
     });
     
-    // For state-changing operations, add a header to indicate CSRF check is needed
-    // The actual CSRF protection will be handled at the API route level (Node.js runtime)
-    if (STATE_CHANGING_METHODS.includes(request.method)) {
-      response.headers.set('X-CSRF-Check-Required', 'true');
+    // Check CSRF protection for state-changing operations
+    const csrfCheck = await checkCSRFProtection(request);
+    if (!csrfCheck.valid) {
+      return new NextResponse(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'CSRF_TOKEN_INVALID',
+            message: csrfCheck.error || 'CSRF token validation failed',
+          },
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
     
     // Continue with existing auth middleware for API routes
@@ -155,4 +165,4 @@ export const config = {
      */
     '/((?!api/auth|_next|_static|images|favicon.ico).*)',
   ],
-};
+}; 

@@ -1,9 +1,9 @@
 'use client';
 
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useCallback } from 'react';
 import { Action, ObjectType, SubjectType } from '@/types/permission';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useAuth } from '@/hooks/useAuth';
+
 
 interface SharingModalProps {
   objectType: ObjectType;
@@ -41,26 +41,10 @@ export const SharingModal: FC<SharingModalProps> = ({
   const [userSearchResults, setUserSearchResults] = useState<Array<{ id: string, name: string, email: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   
-  const { user } = useAuth();
   const { organizations } = useOrganization();
   
-  // Load existing permissions when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      loadPermissions();
-    }
-  }, [isOpen, objectType, objectId]);
-  
-  // Search users as user types
-  useEffect(() => {
-    if (userSearchQuery.length >= 2) {
-      searchUsers(userSearchQuery);
-    } else {
-      setUserSearchResults([]);
-    }
-  }, [userSearchQuery]);
-  
-  const loadPermissions = async () => {
+  // Memoized functions to prevent unnecessary re-renders
+  const loadPermissions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
@@ -81,9 +65,9 @@ export const SharingModal: FC<SharingModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [objectType, objectId]);
   
-  const searchUsers = async (query: string) => {
+  const searchUsers = useCallback(async (query: string) => {
     if (query.length < 2) return;
     
     setIsSearching(true);
@@ -104,7 +88,23 @@ export const SharingModal: FC<SharingModalProps> = ({
     } finally {
       setIsSearching(false);
     }
-  };
+  }, []);
+  
+  // Load existing permissions when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadPermissions();
+    }
+  }, [isOpen, loadPermissions]);
+  
+  // Search users as user types
+  useEffect(() => {
+    if (userSearchQuery.length >= 2) {
+      searchUsers(userSearchQuery);
+    } else {
+      setUserSearchResults([]);
+    }
+  }, [userSearchQuery, searchUsers]);
   
   const handleAddPermission = async () => {
     if (!subjectId) {
@@ -364,7 +364,7 @@ export const SharingModal: FC<SharingModalProps> = ({
                     ))}
                   </select>
                 ) : (
-                  <p className="text-sm text-gray-500">You don't have any organizations.</p>
+                  <p className="text-sm text-gray-500">You don&apos;t have any organizations.</p>
                 )}
               </div>
             )}

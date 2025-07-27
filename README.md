@@ -62,7 +62,7 @@ The project uses Docker Compose to manage its development dependencies. The foll
    ```
 
 3. Access services:
-   - PostgreSQL: localhost:5432
+   - PostgreSQL: localhost:5433
      - User: binventory
      - Password: binventory_local
      - Database: binventory

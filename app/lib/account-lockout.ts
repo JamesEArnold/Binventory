@@ -13,7 +13,7 @@ const loginAttempts = new Map<string, LoginAttempt>();
 
 // Configuration
 const MAX_LOGIN_ATTEMPTS = parseInt(process.env.MAX_LOGIN_ATTEMPTS || '5', 10);
-const LOCKOUT_DURATION = parseInt(process.env.LOCKOUT_DURATION || '900000', 10); // 15 minutes
+// const LOCKOUT_DURATION = parseInt(process.env.LOCKOUT_DURATION || '900000', 10); // 15 minutes
 const ATTEMPT_WINDOW = parseInt(process.env.ATTEMPT_WINDOW || '300000', 10); // 5 minutes
 
 // Progressive lockout durations (in milliseconds)
@@ -27,7 +27,7 @@ const LOCKOUT_DURATIONS = [
 // Cleanup expired attempts every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [key, attempt] of loginAttempts.entries()) {
+  for (const [key, attempt] of Array.from(loginAttempts.entries())) {
     // Remove attempts older than the attempt window and not locked
     if (!attempt.lockedUntil && (now - attempt.lastAttempt) > ATTEMPT_WINDOW * 2) {
       loginAttempts.delete(key);
@@ -196,7 +196,7 @@ export function getLockoutStatus(): Array<{
     isLocked: boolean;
   }> = [];
   
-  for (const [identifier, attempt] of loginAttempts.entries()) {
+  for (const [identifier, attempt] of Array.from(loginAttempts.entries())) {
     const isLocked = attempt.lockedUntil ? now < attempt.lockedUntil : false;
     
     status.push({

@@ -186,7 +186,10 @@ export function createBinService({
         // Index the bin in search
         if (searchService) {
           try {
-            await searchService.indexBin(bin);
+            await searchService.indexBin({
+              ...bin,
+              description: bin.description ?? undefined
+            });
           } catch (error) {
             console.error('Failed to index bin in search:', error);
             // Don't fail the bin creation if indexing fails
@@ -275,7 +278,10 @@ export function createBinService({
         // Update the bin in search
         if (searchService) {
           try {
-            await searchService.indexBin(updatedBin);
+            await searchService.indexBin({
+              ...updatedBin,
+              description: updatedBin.description ?? undefined
+            });
           } catch (error) {
             console.error('Failed to update bin in search index:', error);
             // Don't fail the bin update if indexing fails

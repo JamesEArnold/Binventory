@@ -4,35 +4,79 @@
  * @dependencies Phase 1.1, Phase 1.2
  */
 
+'use client';
+
 import Link from 'next/link';
-import { prisma } from '../lib/prisma';
-import { requireAuth } from '../lib/auth';
+import { useEffect, useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { Category } from '@prisma/client';
 
-// Fetch categories with their items count
-async function getCategoriesWithCounts(userId: string) {
-  const categories = await prisma.category.findMany({
-    where: { userId },
-    include: {
-      _count: {
-        select: {
-          items: true
-        }
-      },
-      parent: true
-    },
-    orderBy: {
-      name: 'asc'
+type CategoryWithCountAndParent = Category & {
+  _count: {
+    items: number;
+  };
+  parent: Category | null;
+};
+
+export default function CategoriesPage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [categories, setCategories] = useState<CategoryWithCountAndParent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
     }
-  });
-  
-  return categories;
-}
 
-export default async function CategoriesPage() {
-  // Ensure user is authenticated
-  const user = await requireAuth();
-  
-  const categories = await getCategoriesWithCounts(user.id);
+    async function fetchCategories() {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        if (data.success) {
+          setCategories(data.data);
+        } else {
+          throw new Error(data.error?.message || 'Failed to fetch categories');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, [user, authLoading]);
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="flex justify-center items-center min-h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 bg-white">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto px-4 py-8 bg-white">

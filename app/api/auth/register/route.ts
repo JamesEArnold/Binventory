@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { registerUser, registerSchema } from '@/services/auth';
 import { z } from 'zod';
 
+// Ensure this API route runs in Node.js runtime (required for bcrypt)
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body

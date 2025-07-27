@@ -7,6 +7,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
@@ -156,7 +157,8 @@ export function Navigation() {
               </svg>
             </Link>
             
-            {/* Notification Button */}
+            {/* Notification Button - Commented out until functionality is implemented */}
+            {/*
             <button 
               type="button" 
               className="ml-3 relative rounded-full bg-gray-100 p-1 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -179,6 +181,7 @@ export function Navigation() {
                 3
               </span>
             </button>
+            */}
             
             {/* Profile Menu */}
             {isAuthenticated ? (
@@ -193,10 +196,12 @@ export function Navigation() {
                 >
                   <span className="sr-only">Open user menu</span>
                   {user?.image ? (
-                    <img
+                    <Image
                       className="h-8 w-8 rounded-full"
                       src={user.image}
                       alt={`${user.name || 'User'}'s profile picture`}
+                      width={32}
+                      height={32}
                     />
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">

@@ -212,12 +212,12 @@ export function sanitizeString(input: string): string {
 }
 
 // Helper function to validate and sanitize object
-export function sanitizeObject<T extends Record<string, any>>(obj: T): T {
+export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {
   const sanitized = { ...obj };
   
   for (const [key, value] of Object.entries(sanitized)) {
     if (typeof value === 'string') {
-      sanitized[key] = sanitizeString(value);
+      (sanitized as Record<string, unknown>)[key] = sanitizeString(value);
     }
   }
   
