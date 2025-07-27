@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 // Base validation patterns
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#_+=<>(){}[\]|\\:";',./~`^-])[A-Za-z\d@$!%*?&.#_+=<>(){}[\]|\\:";',./~`^-]+$/;
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SAFE_STRING_REGEX = /^[a-zA-Z0-9\s\-_.(),]*$/;
@@ -17,7 +17,7 @@ export const commonValidations = {
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password must not exceed 128 characters')
-    .regex(PASSWORD_REGEX, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
+    .regex(PASSWORD_REGEX, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&.#_+=<>(){}[]|\\:";\',.~`^-)'),
   slug: z.string().min(1).max(100).regex(SLUG_REGEX, 'Invalid slug format'),
   safeString: z.string().regex(SAFE_STRING_REGEX, 'Contains invalid characters'),
   name: z.string().min(1, 'Name is required').max(100).regex(SAFE_STRING_REGEX),

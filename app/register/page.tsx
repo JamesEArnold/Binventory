@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
   
@@ -19,12 +19,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     try {
       // Validate passwords match
       if (password !== confirmPassword) {
-        setError('Passwords do not match');
+        toast.error('Passwords do not match');
         setIsLoading(false);
         return;
       }
@@ -46,16 +45,29 @@ export default function RegisterPage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        setError(result.error || 'Registration failed');
+        // Handle validation errors specifically
+        if (result.error && typeof result.error === 'string') {
+          // Check if it's a Zod validation error
+          if (result.error.includes('Password must contain')) {
+            toast.error(result.error);
+          } else {
+            toast.error(result.error);
+          }
+        } else {
+          toast.error('Registration failed. Please try again.');
+        }
         setIsLoading(false);
         return;
       }
 
-      // Redirect to login page on success
-      router.push('/login?registered=true');
+      // Show success message and redirect
+      toast.success('Account created successfully! Redirecting to login...');
+      setTimeout(() => {
+        router.push('/login?registered=true');
+      }, 1500);
     } catch (err) {
-      setError('An unexpected error occurred');
-      console.error(err);
+      toast.error('An unexpected error occurred. Please try again.');
+      console.error('Registration error:', err);
       setIsLoading(false);
     }
   };
@@ -66,7 +78,7 @@ export default function RegisterPage() {
       await signIn(provider, { callbackUrl: '/' });
     } catch (error) {
       console.error(`Error signing in with ${provider}:`, error);
-      setError(`Failed to sign in with ${provider}`);
+      toast.error(`Failed to sign in with ${provider}`);
       setIsOAuthLoading(null);
     }
   };
@@ -85,16 +97,6 @@ export default function RegisterPage() {
             </Link>
           </p>
         </div>
-        
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-            <div className="flex">
-              <div>
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
